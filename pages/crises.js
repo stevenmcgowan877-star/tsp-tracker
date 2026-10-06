@@ -5,9 +5,10 @@ import Link from "next/link";
 import { ResponsiveContainer, ComposedChart, LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { EPISODES } from "../lib/episodes";
 import { totalBalance, readStoredHoldings } from "../lib/holdings";
+import { readCoverage, writeCoverage, COVERAGE_OPTIONS, pctLabel } from "../lib/settings";
 
 // Colours validated for the dark surface (#070d1a): see pages/backtest.js.
-const COLORS = { price: "#2563eb", sma: "#d97706", rule: "#16a34a", inG: "rgba(148,163,184,0.18)" };
+const COLORS = { price: "#2563eb", sma: "#d97706", rule: "#16a34a", mix: "#d97706", inG: "rgba(148,163,184,0.18)" };
 const mono = "'Space Mono', monospace";
 const pct = (x, d = 1) => (x == null ? "—" : `${x >= 0 ? "+" : ""}${(x * 100).toFixed(d)}%`);
 const money = (x) => `${x < 0 ? "-" : ""}$${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
@@ -61,16 +62,19 @@ export default function Crises() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [holdings, setHoldings] = useState(null);
+  const [coverage, setCoverage] = useState(null);
   const requestId = useRef(0);
 
-  useEffect(() => { setHoldings(readStoredHoldings()); }, []);
+  useEffect(() => { setHoldings(readStoredHoldings()); setCoverage(readCoverage()); }, []);
 
-  const load = useCallback(async (episodeId) => {
+  const changeCoverage = (c) => { setCoverage(c); writeCoverage(c); };
+
+  const load = useCallback(async (episodeId, cov) => {
     const req = ++requestId.current;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/crisis?id=${encodeURIComponent(episodeId)}`);
+      const res = await fetch(`/api/crisis?id=${encodeURIComponent(episodeId)}&coverage=${cov}`);
       const json = await res.json();
       if (req !== requestId.current) return;
       if (!res.ok) throw new Error(json.error || "Replay failed");
@@ -82,7 +86,7 @@ export default function Crises() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(id); }, [id, load]);
+  useEffect(() => { if (coverage != null) load(id, coverage); }, [id, coverage, load]);
 
   // Chart rows: the G shading is an area that spans the price axis while the
   // rule is in G and is null otherwise, so it reads as a band behind the line.
@@ -95,6 +99,7 @@ export default function Crises() {
   const s = data?.stats;
   const st = data?.story;
   const total = holdings ? totalBalance(holdings) : 0;
+  const showMix = data && data.coverage < 1;
 
   return (
     <>
@@ -142,12 +147,24 @@ export default function Crises() {
               }}>{e.name.toUpperCase()}</button>
             ))}
           </div>
+          <div className="ep" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: -10, marginBottom: 20 }}>
+            <span style={{ fontSize: 9, letterSpacing: 2, color: "#64748b", marginRight: 4 }}>RULE MOVES</span>
+            {COVERAGE_OPTIONS.map((c) => (
+              <button key={c} onClick={() => changeCoverage(c)} aria-pressed={coverage === c} style={{
+                background: coverage === c ? "rgba(0,255,136,0.08)" : "transparent",
+                border: `1px solid ${coverage === c ? "#00ff88" : "#1e293b"}`,
+                color: coverage === c ? "#00ff88" : "#64748b",
+                fontFamily: mono, fontSize: 10, letterSpacing: 1, padding: "4px 10px", borderRadius: 6, cursor: "pointer",
+              }}>{pctLabel(c)}</button>
+            ))}
+            <span style={{ fontSize: 10, color: "#475569" }}>of the balance at each flip; the rest stays in C</span>
+          </div>
 
           {error ? (
             <div style={{ textAlign: "center", padding: 60, color: "#ff4466" }}>
               <div style={{ fontSize: 20, marginBottom: 8 }}>⚠</div>
               <div style={{ fontSize: 13 }}>{error}</div>
-              <button onClick={() => load(id)} style={{ marginTop: 16, background: "transparent", border: "1px solid #ff4466", color: "#ff4466", fontFamily: mono, padding: "8px 20px", borderRadius: 6, cursor: "pointer" }}>Retry</button>
+              <button onClick={() => load(id, coverage ?? 1)} style={{ marginTop: 16, background: "transparent", border: "1px solid #ff4466", color: "#ff4466", fontFamily: mono, padding: "8px 20px", borderRadius: 6, cursor: "pointer" }}>Retry</button>
             </div>
           ) : !data ? (
             <div style={{ textAlign: "center", padding: 80, color: "#334155" }}>
@@ -167,7 +184,10 @@ export default function Crises() {
                       ? " The rule was already in G when the window opened."
                       : " The rule never left C: the decline stayed inside the 3% band around the 200-day average."}
                   {" "}Over the whole window the rule&apos;s worst loss was {pct(s.ruleDrawdown)} against {pct(s.cDrawdown)} for holding C, and $10,000 ended at {money(s.ruleFinal)} versus {money(s.holdCFinal)}.
-                  {total > 0 && ` On your ${money(total)}, those worst losses would have been ${money(total * s.ruleDrawdown)} under the rule and ${money(total * s.cDrawdown)} holding C.`}
+                  {showMix && ` Moving ${pctLabel(data.coverage)} at each flip and leaving the rest in C, the worst loss was ${pct(s.mixDrawdown)} and $10,000 ended at ${money(s.mixFinal)}.`}
+                  {total > 0 && (showMix
+                    ? ` On your ${money(total)}, the worst loss would have been ${money(total * s.mixDrawdown)} with your mix and ${money(total * s.cDrawdown)} holding C.`
+                    : ` On your ${money(total)}, those worst losses would have been ${money(total * s.ruleDrawdown)} under the rule and ${money(total * s.cDrawdown)} holding C.`)}
                 </p>
               </div>
 
@@ -176,6 +196,7 @@ export default function Crises() {
                 <Stat label="HOLD C · WORST LOSS" value={pct(s.cDrawdown)} tone="bad" />
                 <Stat label="RULE · WINDOW RETURN" value={pct(s.ruleReturn)} sub={`${money(s.ruleFinal)} from $10,000`} tone={s.ruleReturn >= s.holdCReturn ? "good" : undefined} />
                 <Stat label="HOLD C · WINDOW RETURN" value={pct(s.holdCReturn)} sub={`${money(s.holdCFinal)} from $10,000`} tone={s.holdCReturn > s.ruleReturn ? "good" : undefined} />
+                {showMix && <Stat label={`YOUR MIX · ${pctLabel(data.coverage)} MOVED`} value={pct(s.mixDrawdown)} sub={`worst loss · ${pct(s.mixReturn)} over the window`} tone={s.mixDrawdown > s.cDrawdown ? "good" : "bad"} />}
               </div>
 
               {/* Price vs average, with G periods shaded */}
@@ -207,6 +228,7 @@ export default function Crises() {
                       <Tooltip content={<GrowthTooltip />} cursor={{ stroke: "#334155", strokeWidth: 1 }} />
                       <Legend wrapperStyle={{ fontSize: 11, fontFamily: mono, color: "#94a3b8", paddingTop: 8 }} iconType="plainline" />
                       <Line type="monotone" dataKey="trend" name="Trend rule" stroke={COLORS.rule} strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                      {showMix && <Line type="monotone" dataKey="mix" name={`Your mix (${pctLabel(data.coverage)} moved)`} stroke={COLORS.mix} strokeWidth={2} dot={false} isAnimationActive={false} />}
                       <Line type="monotone" dataKey="C" name="Hold C Fund" stroke={COLORS.price} strokeWidth={2} dot={false} isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>

@@ -120,7 +120,20 @@ Composite above +0.25 reads BUY, below −0.25 reads SELL, otherwise MIXED. The 
 
 ### Crisis replays (`/crises`)
 
-Eight episodes from the 2008 financial crisis to the spring 2026 dip, each replayed day by day: the C Fund against its 200-day average with the periods the rule held G shaded, growth of $10,000 under the rule and under holding C, every move with its date and price, and a plain-words account of when the rule stepped aside relative to the peak and when it returned relative to the low. If balances are stored in the holdings panel, the worst losses are shown in those dollars too. The replays are honest in both directions: 2008 shows the rule at its best (a 13% worst loss against 55%) and 2015-16 shows it whipsawed into a worse result than holding. Engine in `lib/crises.js`, episodes defined at the top of that file.
+Eight episodes from the 2008 financial crisis to the spring 2026 dip, each replayed day by day: the C Fund against its 200-day average with the periods the rule held G shaded, growth of $10,000 under the rule and under holding C, every move with its date and price, and a plain-words account of when the rule stepped aside relative to the peak and when it returned relative to the low. If balances are stored in the holdings panel, the worst losses are shown in those dollars too. The replays are honest in both directions: 2008 shows the rule at its best (a 13% worst loss against 55%) and 2015-16 shows it whipsawed into a worse result than holding. A selector replays each episode at any coverage, with your mix drawn alongside the rule and holding C. Worst loss in each window (October 2026 data):
+
+| Episode | Hold C | Rule, 100% moved | Your mix, 75% moved |
+|---|---|---|---|
+| 2008 financial crisis | -55% | -13% | -16% |
+| 2011 debt-ceiling scare | -19% | -12% | -13% |
+| 2015-16 China and oil selloff | -13% | -19% | -16% |
+| Late-2018 rate scare | -19% | -9% | -10% |
+| 2020 COVID crash | -34% | -19% | -20% |
+| 2022 bear market | -24% | -17% | -17% |
+| Spring 2025 selloff | -19% | -10% | -11% |
+| Spring 2026 dip | -9% | -9% | -9% |
+
+The 75% mix gave up one to three points of protection in the real crashes and finished ahead of the rule in the whipsaws: -7% against -11% over the 2015-16 window and -2% against -4% in 2020, because the quarter left in C softened the cost of selling low and buying back higher. Engine in `lib/crises.js`, episodes defined in `lib/episodes.js`.
 
 ### L Funds (`/lfunds`)
 

@@ -51,6 +51,22 @@ test("runCrisis replays a window daily and tells the exit/re-entry story", () =>
   }
 });
 
+test("the coverage mix sits between the rule and holding C through a crash", () => {
+  EPISODES.push({ id: "mixtest", name: "Mix test", start: "2021-01-01", end: "2022-05-01" });
+  try {
+    const full = runCrisis(synthetic(), "mixtest");
+    const mix = runCrisis(synthetic(), "mixtest", { coverage: 0.75 });
+    assert.equal(full.coverage, 1);
+    assert.equal(mix.coverage, 0.75);
+    assert.ok(Math.abs(full.stats.mixFinal - full.stats.ruleFinal) <= 1, "coverage 1 is the rule");
+    assert.ok(mix.stats.mixDrawdown < mix.stats.ruleDrawdown, "keeping 25% in C loses more than the rule");
+    assert.ok(mix.stats.mixDrawdown > mix.stats.cDrawdown, "but much less than holding C");
+    assert.ok(mix.curve.every((p) => typeof p.mix === "number"));
+  } finally {
+    EPISODES.pop();
+  }
+});
+
 test("runCrisis rejects unknown episodes", () => {
   assert.throws(() => runCrisis(synthetic(), "nope"), /Unknown episode/);
 });

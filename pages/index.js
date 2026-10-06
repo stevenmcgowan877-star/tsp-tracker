@@ -120,7 +120,7 @@ export default function Home() {
         <meta name="description" content="One evidence-backed action rule for your TSP allocation, on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <ShareMeta title="TSP Fund Signal Tracker" description="One evidence-backed action rule for your TSP allocation, on official tsp.gov prices." path="/" />
+        {ShareMeta({ title: "TSP Fund Signal Tracker", description: "One evidence-backed action rule for your TSP allocation, on official tsp.gov prices.", path: "/" })}
       </Head>
 
       <style>{`

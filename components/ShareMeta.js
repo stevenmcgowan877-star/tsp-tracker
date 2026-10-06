@@ -1,5 +1,9 @@
 // Open Graph and Twitter card tags. The image needs an absolute URL, which
 // Vercel supplies at build time (see next.config.mjs); locally it is omitted.
+//
+// Call it as a function inside <Head> ({ShareMeta({...})}), not as an
+// element: next/head only unwraps Fragments, so a component child would be
+// skipped by the client head manager and miscount next-head-count.
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "";
 
 export default function ShareMeta({ title, description, path = "/" }) {

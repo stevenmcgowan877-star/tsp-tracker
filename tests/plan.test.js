@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { samplePaths, runPlan, PATHS, TRADING_DAYS } from "../lib/plan.js";
+import { trendStateAt } from "../lib/trendRule.js";
 
 // Synthetic history: C drifts up with noise (deterministic), G accrues 3%/yr.
 function history(days = 2000) {
@@ -54,4 +55,32 @@ test("runPlan validates its inputs", () => {
   assert.throws(() => runPlan(history(), { balance: -1, contribution: 0, years: 5 }), /required/);
   assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 0 }), /required/);
   assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 41 }), /required/);
+});
+
+test("the planner starts the rule in the state the full history implies, even inside the band", () => {
+  // A long rise (rule ON), then a drift down to about 2% below the average:
+  // still ON, because the exit needs a 3% break. A warm-window-only replay
+  // would call it OFF.
+  const C = [], G = [];
+  let c = 100;
+  for (let i = 0; i < 900; i++) {
+    if (i < 700) c *= 1.0008; else c *= 0.9998;
+    const date = new Date(Date.UTC(2015, 0, 1) + i * 86400000).toISOString().slice(0, 10);
+    C.push({ date, close: c }); G.push({ date, close: 10 + i * 0.001 });
+  }
+  const closes = C.map((p) => p.close);
+  const sma = closes.slice(-200).reduce((a, b) => a + b, 0) / 200;
+  const pctVsSma = closes[closes.length - 1] / sma - 1;
+  assert.ok(pctVsSma < 0 && pctVsSma > -0.03, `expected inside the band, got ${pctVsSma}`);
+  assert.equal(trendStateAt(closes, closes.length - 1), "ON");
+  const r = runPlan({ C, G }, { balance: 1000, contribution: 0, years: 1 });
+  assert.equal(r.startState, "ON");
+});
+
+test("samplePaths resets its cache when the history changes and keeps few horizons", () => {
+  const h = history();
+  const a = samplePaths(h, 1, { paths: 5 });
+  const longer = { C: [...h.C, { date: "2030-01-01", close: h.C[h.C.length - 1].close }], G: [...h.G, { date: "2030-01-01", close: h.G[h.G.length - 1].close }] };
+  const b = samplePaths(longer, 1, { paths: 5 });
+  assert.notEqual(a, b, "a new trading day invalidates cached paths");
 });

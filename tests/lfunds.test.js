@@ -39,6 +39,10 @@ test("compareLFunds reports stats on the same window as the benchmarks and flags
   assert.ok(r.start >= "2025-10-01");
   assert.equal(r.benchmarks.C.curve.length, r.dates.length);
   assert.equal(r.benchmarks.trend.curve.length, r.dates.length);
+  assert.ok(r.benchmarks.C.vol > 0, "benchmarks carry volatility too");
+  assert.equal(r.benchmarks.G.vol >= 0, true);
+  assert.equal(typeof r.benchmarks.trend.switches, "number");
+  assert.equal("_dateIndex" in r, false);
   const l2050 = r.funds.find((f) => f.name === "L 2050");
   assert.equal(l2050.available, true);
   assert.equal(l2050.partial, false);

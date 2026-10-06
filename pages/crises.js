@@ -3,8 +3,8 @@ import Head from "next/head";
 import ShareMeta from "../components/ShareMeta";
 import Link from "next/link";
 import { ResponsiveContainer, ComposedChart, LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { EPISODES } from "../lib/crises";
-import { assessHoldings } from "../lib/holdings";
+import { EPISODES } from "../lib/episodes";
+import { totalBalance, readStoredHoldings } from "../lib/holdings";
 
 // Colours validated for the dark surface (#070d1a): see pages/backtest.js.
 const COLORS = { price: "#2563eb", sma: "#d97706", rule: "#16a34a", inG: "rgba(148,163,184,0.18)" };
@@ -12,15 +12,6 @@ const mono = "'Space Mono', monospace";
 const pct = (x, d = 1) => (x == null ? "—" : `${x >= 0 ? "+" : ""}${(x * 100).toFixed(d)}%`);
 const money = (x) => `${x < 0 ? "-" : ""}$${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
 const longDate = (d) => (d ? new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—");
-
-function readHoldings() {
-  try {
-    const raw = window.localStorage.getItem("tsp-tracker:holdings");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
 
 function Stat({ label, value, sub, tone }) {
   const color = tone === "good" ? "#00ff88" : tone === "bad" ? "#ff4466" : "#e2e8f0";
@@ -72,7 +63,7 @@ export default function Crises() {
   const [holdings, setHoldings] = useState(null);
   const requestId = useRef(0);
 
-  useEffect(() => { setHoldings(readHoldings()); }, []);
+  useEffect(() => { setHoldings(readStoredHoldings()); }, []);
 
   const load = useCallback(async (episodeId) => {
     const req = ++requestId.current;
@@ -103,7 +94,7 @@ export default function Crises() {
 
   const s = data?.stats;
   const st = data?.story;
-  const total = holdings ? assessHoldings(holdings, { available: false }, null).total : 0;
+  const total = holdings ? totalBalance(holdings) : 0;
 
   return (
     <>
@@ -112,7 +103,7 @@ export default function Crises() {
         <meta name="description" content="What the 200-day trend rule did through each market crisis since 2007, day by day, on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <ShareMeta title="Crisis Replays · TSP Fund Signal Tracker" description="What the 200-day trend rule did through each market crisis since 2007, day by day." path="/crises" />
+        {ShareMeta({ title: "Crisis Replays · TSP Fund Signal Tracker", description: "What the 200-day trend rule did through each market crisis since 2007, day by day.", path: "/crises" })}
       </Head>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

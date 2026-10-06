@@ -1,21 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { HOLDING_FUNDS, assessHoldings } from "../lib/holdings";
+import { HOLDING_FUNDS, HOLDINGS_STORAGE_KEY, assessHoldings, readStoredHoldings } from "../lib/holdings";
 
 const mono = "'Space Mono', monospace";
 const FUND_COLORS = { C: "#00ff88", S: "#00cfff", I: "#a78bfa", F: "#fbbf24", G: "#94a3b8", L: "#f472b6" };
-const STORAGE_KEY = "tsp-tracker:holdings";
+const STORAGE_KEY = HOLDINGS_STORAGE_KEY;
 const money = (x) => `${x < 0 ? "-" : ""}$${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
-
-function readStored() {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return typeof parsed === "object" && parsed ? parsed : null;
-  } catch {
-    return null;
-  }
-}
 
 function writeStored(balances) {
   try {
@@ -32,7 +21,7 @@ export default function HoldingsPanel({ trend, backtest }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = readStored();
+    const stored = readStoredHoldings();
     if (stored) {
       setBalances({ C: "", S: "", I: "", F: "", G: "", L: "", ...stored });
       setOpen(true);

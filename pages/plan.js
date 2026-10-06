@@ -3,7 +3,7 @@ import Head from "next/head";
 import ShareMeta from "../components/ShareMeta";
 import Link from "next/link";
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { totalBalance } from "../lib/holdings";
+import { totalBalance, readStoredHoldings } from "../lib/holdings";
 
 // Colours validated for the dark surface (#070d1a): see pages/backtest.js.
 const COLORS = { rule: "#16a34a", C: "#2563eb", G: "#7c3aed" };
@@ -65,7 +65,7 @@ export default function Plan() {
 
   useEffect(() => {
     const stored = readStored(STORAGE_KEY, null);
-    const holdings = readStored("tsp-tracker:holdings", null);
+    const holdings = readStoredHoldings();
     const fromHoldings = holdings ? totalBalance(holdings) : 0;
     setInputs({
       balance: stored?.balance ?? (fromHoldings > 0 ? String(Math.round(fromHoldings)) : "100000"),
@@ -120,7 +120,7 @@ export default function Plan() {
         <meta name="description" content="A range of retirement outcomes for your TSP balance and contributions under the trend rule, holding C and holding G" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <ShareMeta title="Planner · TSP Fund Signal Tracker" description="A range of retirement outcomes for your TSP balance and contributions under the trend rule, holding C and holding G." path="/plan" />
+        {ShareMeta({ title: "Planner · TSP Fund Signal Tracker", description: "A range of retirement outcomes for your TSP balance and contributions under the trend rule, holding C and holding G.", path: "/plan" })}
       </Head>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

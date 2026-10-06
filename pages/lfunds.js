@@ -99,7 +99,7 @@ export default function LFunds() {
         <meta name="description" content="Every TSP Lifecycle fund compared with the C Fund, the G Fund and the trend rule on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <ShareMeta title="L Fund Lens · TSP Fund Signal Tracker" description="Every TSP Lifecycle fund compared with the C Fund, the G Fund and the trend rule." path="/lfunds" />
+        {ShareMeta({ title: "L Fund Lens · TSP Fund Signal Tracker", description: "Every TSP Lifecycle fund compared with the C Fund, the G Fund and the trend rule.", path: "/lfunds" })}
       </Head>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

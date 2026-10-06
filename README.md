@@ -94,6 +94,12 @@ Each signal scores −1, 0 or +1 (MACD scores ±0.7) and is weighted:
 
 Composite above +0.25 shows **SWITCH IN**, below −0.25 shows **SWITCH OUT**, otherwise **HOLD**. The RSI and zone signals are contrarian, so a fund at fresh highs usually reads HOLD rather than SWITCH IN. Weights live in `lib/marketData.js` (`WEIGHTS`).
 
+### Backtest (`/backtest`)
+
+The backtest page replays those exact rules over the full tsp.gov history (2003 onward) and compares the result with holding the C Fund, holding the G Fund, and an equal-weight C/S/I/F mix rebalanced monthly. The replay acts on each day's signal at the next close, follows the TSP limit of two unrestricted interfund transfers per month (after that only moves into G), and ignores costs. Range presets cover 1, 3, 5 and 10 years and the whole history. The engine is `lib/backtest.js`; results are cached for 6 hours.
+
+As of October 2026 the full-history result is sobering: the signals compound at roughly 6% a year against 11% for holding C, with about half the worst drawdown. Treat the dashboard as a risk gauge, not a return booster.
+
 ---
 
 ## API Rate Limits

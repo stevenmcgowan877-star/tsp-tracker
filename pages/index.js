@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import FundCard from "../components/FundCard";
 
 function Recommendation({ funds }) {
@@ -143,6 +144,11 @@ export default function Home() {
                     UPDATED {new Date(updatedAt).toLocaleTimeString()}
                   </div>
                 )}
+                <Link href="/backtest" style={{
+                  display: "inline-block", marginRight: 8, border: "1px solid #1e293b", color: "#475569",
+                  fontFamily: "'Space Mono', monospace", fontSize: 10, padding: "6px 16px",
+                  borderRadius: 6, letterSpacing: 2, textDecoration: "none",
+                }}>BACKTEST →</Link>
                 <button onClick={loadData} style={{
                   background: "transparent", border: "1px solid #1e293b", color: "#475569",
                   fontFamily: "'Space Mono', monospace", fontSize: 10, padding: "6px 16px",

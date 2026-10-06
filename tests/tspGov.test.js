@@ -31,7 +31,7 @@ test("parseTspCsv returns the five funds oldest-first and trimmed", () => {
 
 test("parseTspCsv ignores blank rows and the L-fund columns", () => {
   const series = parseTspCsv(sampleCsv(40));
-  // 40 daily rows + the 2003 row; the empty trailing row is dropped.
+  // 40 daily rows + the 2003 row; the empty trailing row is dropped. No trim by default.
   assert.equal(series.G.length, 41);
   assert.equal(series.G[0].date, "2003-05-31");
   assert.equal(series.G[0].close, 10);

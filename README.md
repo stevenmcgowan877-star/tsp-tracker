@@ -124,6 +124,10 @@ Eight episodes from the 2008 financial crisis to the spring 2026 dip, each repla
 
 Every Lifecycle fund from L Income to L 2075, compared with holding C, holding G and the trend rule over 1, 3, 5 or 10 years: annual return, worst drawdown, volatility and growth of $10,000, with a chart of any one L Fund against the three references. Funds younger than the window are reported from their first day and marked. The holdings panel accepts an L Fund balance as its own bucket, since the rule does not manage a fixed mix. Engine in `lib/lfunds.js`.
 
+### Contribution planner (`/plan`)
+
+Enter a balance, a per-pay-period contribution and years to retirement (kept in the browser; the balance is prefilled from the holdings panel). The server builds 300 futures by block-bootstrapping the real daily returns of the C and G Funds (60-trading-day blocks, C and G sampled on the same dates), runs the trend rule on each starting from its real current state, adds contributions every ten trading days, and returns 10th to 90th percentile bands per year for the rule, holding C and holding G, plus the share of futures in which the rule ends ahead of C. Nominal dollars, no fees or raises. Short-block resampling breaks up multi-year trends, which works against a trend rule, so the rule's shortfall is a pessimistic bound; the drawdown comparison is the more reliable part. Engine in `lib/plan.js`; a 30-year run takes about a second and is cached per set of inputs.
+
 ### Daily alert when the rule flips
 
 `vercel.json` schedules `/api/check-trend` every Tuesday to Saturday at 02:30 UTC (after TSP posts the previous day's prices). The check reads tsp.gov fresh and is stateless: it alerts while the rule's state began within the last two closes, so a flip whose price posted late is still caught, at the cost of a possible repeat the next day. Flips happen about once a year. Configure on Vercel:

@@ -116,6 +116,10 @@ Each signal scores −1, 0 or +1 (MACD scores ±0.7) and is weighted:
 
 Composite above +0.25 reads BUY, below −0.25 reads SELL, otherwise MIXED. The RSI and zone signals are contrarian, so a fund at fresh highs usually reads MIXED. Weights live in `lib/marketData.js` (`WEIGHTS`). The score describes conditions on the dashboard; it is not the action rule.
 
+### Crisis replays (`/crises`)
+
+Eight episodes from the 2008 financial crisis to the spring 2026 dip, each replayed day by day: the C Fund against its 200-day average with the periods the rule held G shaded, growth of $10,000 under the rule and under holding C, every move with its date and price, and a plain-words account of when the rule stepped aside relative to the peak and when it returned relative to the low. If balances are stored in the holdings panel, the worst losses are shown in those dollars too. The replays are honest in both directions: 2008 shows the rule at its best (a 13% worst loss against 55%) and 2015-16 shows it whipsawed into a worse result than holding. Engine in `lib/crises.js`, episodes defined at the top of that file.
+
 ### Daily alert when the rule flips
 
 `vercel.json` schedules `/api/check-trend` every Tuesday to Saturday at 02:30 UTC (after TSP posts the previous day's prices). The check reads tsp.gov fresh and is stateless: it alerts while the rule's state began within the last two closes, so a flip whose price posted late is still caught, at the cost of a possible repeat the next day. Flips happen about once a year. Configure on Vercel:

@@ -170,7 +170,10 @@ export default function Backtest() {
                 Growth of $10,000 under the action rule and the five-signal score, on official tsp.gov share prices
               </p>
             </div>
-            <Link href="/" style={{ color: "#475569", fontSize: 10, letterSpacing: 2, textDecoration: "none", border: "1px solid #1e293b", padding: "6px 14px", borderRadius: 6 }}>← DASHBOARD</Link>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Link href="/crises" style={{ color: "#475569", fontSize: 10, letterSpacing: 2, textDecoration: "none", border: "1px solid #1e293b", padding: "6px 14px", borderRadius: 6 }}>CRISES</Link>
+              <Link href="/" style={{ color: "#475569", fontSize: 10, letterSpacing: 2, textDecoration: "none", border: "1px solid #1e293b", padding: "6px 14px", borderRadius: 6 }}>← DASHBOARD</Link>
+            </div>
           </div>
 
           {/* Range presets: one row, above everything they scope */}
@@ -221,7 +224,7 @@ export default function Backtest() {
               <div style={{ background: "rgba(15,23,42,0.6)", border: "1px solid #1e293b", borderRadius: 12, padding: "16px 12px 10px", marginBottom: 20 }}>
                 <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 8, paddingLeft: 6 }}>GROWTH OF $10,000 · LOG SCALE</div>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={result.curve} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <LineChart data={result.curve} margin={{ top: 8, right: 28, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke="#0f172a" vertical={false} />
                     <XAxis dataKey="date" tick={{ fill: "#475569", fontSize: 10, fontFamily: mono }} tickLine={false} axisLine={{ stroke: "#1e293b" }}
                       tickFormatter={(d) => d.slice(0, 4)} minTickGap={40} />

@@ -6,9 +6,9 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 // Chart series colours, validated for the dark surface (#070d1a) with the
 // dataviz palette checks: lightness band, chroma, CVD separation, contrast.
 const SERIES = [
-  { key: "strategy", label: "Follow the signals", color: "#16a34a" },
+  { key: "trend", label: "Trend rule (C or G)", color: "#16a34a" },
   { key: "C", label: "Hold C Fund", color: "#2563eb" },
-  { key: "EW", label: "Equal weight C/S/I/F", color: "#d97706" },
+  { key: "composite", label: "Five-signal score", color: "#d97706" },
   { key: "G", label: "Hold G Fund", color: "#7c3aed" },
 ];
 // Fund identity colours, shared with the dashboard cards.
@@ -16,7 +16,7 @@ const FUND_COLORS = { C: "#00ff88", S: "#00cfff", I: "#a78bfa", F: "#fbbf24", G:
 const FUND_NAMES = { C: "C Fund", S: "S Fund", I: "I Fund", F: "F Fund", G: "G Fund" };
 
 const RANGES = [
-  { key: "all", label: "SINCE 2003", start: undefined },
+  { key: "all", label: "SINCE 2004", start: undefined },
   { key: "10y", label: "10 YEARS", years: 10 },
   { key: "5y", label: "5 YEARS", years: 5 },
   { key: "3y", label: "3 YEARS", years: 3 },
@@ -50,7 +50,7 @@ function CurveTooltip({ active, payload, label }) {
   const held = payload[0]?.payload?.held;
   return (
     <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 6, padding: "10px 12px", fontFamily: mono, fontSize: 11 }}>
-      <div style={{ color: "#94a3b8", marginBottom: 6 }}>{label}{held ? ` · holding ${FUND_NAMES[held]}` : ""}</div>
+      <div style={{ color: "#94a3b8", marginBottom: 6 }}>{label}{held ? ` · trend rule in ${FUND_NAMES[held]}` : ""}</div>
       {payload.map((p) => (
         <div key={p.dataKey} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
           <span style={{ width: 14, height: 2, background: p.color, display: "inline-block" }} />
@@ -62,7 +62,7 @@ function CurveTooltip({ active, payload, label }) {
   );
 }
 
-// Which fund the strategy held over time, as one bar of coloured runs.
+// Which fund the trend rule held over time, as one bar of coloured runs.
 function HoldingsBand({ curve }) {
   const runs = useMemo(() => {
     const out = [];
@@ -77,16 +77,16 @@ function HoldingsBand({ curve }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "6px 0 4px" }}>
-        <span style={{ fontSize: 9, color: "#475569", letterSpacing: 3 }}>FUND HELD</span>
+        <span style={{ fontSize: 9, color: "#475569", letterSpacing: 3 }}>TREND RULE · FUND HELD</span>
         <span style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {Object.keys(FUND_COLORS).map((id) => (
+          {["C", "G"].map((id) => (
             <span key={id} style={{ fontSize: 10, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
               <span style={{ width: 8, height: 8, background: FUND_COLORS[id], display: "inline-block", borderRadius: 2 }} />{id}
             </span>
           ))}
         </span>
       </div>
-      <svg viewBox={`0 0 ${n} 12`} preserveAspectRatio="none" style={{ width: "100%", height: 14, display: "block", borderRadius: 3 }} role="img" aria-label="Fund held by the strategy over time">
+      <svg viewBox={`0 0 ${n} 12`} preserveAspectRatio="none" style={{ width: "100%", height: 14, display: "block", borderRadius: 3 }} role="img" aria-label="Fund held by the trend rule over time">
         {runs.map((r, i) => (
           <rect key={i} x={r.start} y={0} width={r.end - r.start} height={12} fill={FUND_COLORS[r.held]}>
             <title>{`${FUND_NAMES[r.held]} from ${r.from}`}</title>
@@ -125,21 +125,22 @@ export default function Backtest() {
     if (!result) return [];
     const byYear = {};
     const add = (key, rows) => rows.forEach((r) => { byYear[r.year] = { ...(byYear[r.year] || {}), [key]: r.ret }; });
-    add("strategy", result.annual.strategy);
-    add("C", result.annual.C);
-    add("EW", result.annual.EW);
+    add("trend", result.strategies.trend.annual);
+    add("C", result.benchmarks.C.annual);
+    add("composite", result.strategies.composite.annual);
     return Object.entries(byYear).sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([year, v]) => ({ year, ...v }));
   }, [result]);
 
-  const s = result?.strategy;
+  const t = result?.strategies?.trend;
+  const k = result?.strategies?.composite;
   const c = result?.benchmarks?.C;
-  const beatsC = s && c && s.cagr > c.cagr;
+  const keptShare = t && c && c.cagr > 0 ? t.cagr / c.cagr : 0;
 
   return (
     <>
       <Head>
         <title>Backtest · TSP Fund Signal Tracker</title>
-        <meta name="description" content="How following the tracker's signals would have performed against holding the C Fund, on official tsp.gov prices" />
+        <meta name="description" content="How the trend rule and the five-signal score would have performed against holding the C Fund, on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
@@ -160,9 +161,9 @@ export default function Backtest() {
           <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #0f172a", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
             <div>
               <div style={{ fontSize: 9, color: "#334155", letterSpacing: 4, marginBottom: 6 }}>THRIFT SAVINGS PLAN</div>
-              <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -1 }}>SIGNAL <span style={{ color: "#00ff88" }}>BACKTEST</span></h1>
+              <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -1 }}>RULE <span style={{ color: "#00ff88" }}>BACKTEST</span></h1>
               <p style={{ fontSize: 11, color: "#334155", fontStyle: "italic", marginTop: 4 }}>
-                Growth of $10,000 following the dashboard&apos;s rules, on official tsp.gov share prices
+                Growth of $10,000 under the action rule and the five-signal score, on official tsp.gov share prices
               </p>
             </div>
             <Link href="/" style={{ color: "#475569", fontSize: 10, letterSpacing: 2, textDecoration: "none", border: "1px solid #1e293b", padding: "6px 14px", borderRadius: 6 }}>← DASHBOARD</Link>
@@ -189,26 +190,26 @@ export default function Backtest() {
           ) : !result ? (
             <div style={{ textAlign: "center", padding: 80, color: "#334155" }}>
               <div style={{ fontSize: 28, animation: "spin 1s linear infinite", display: "inline-block", marginBottom: 12 }}>◈</div>
-              <div style={{ fontSize: 11, letterSpacing: 3 }}>REPLAYING {rangeKey === "all" ? "23 YEARS" : "HISTORY"}...</div>
+              <div style={{ fontSize: 11, letterSpacing: 3 }}>REPLAYING {rangeKey === "all" ? "22 YEARS" : "HISTORY"}...</div>
             </div>
           ) : (
             <div style={{ opacity: loading ? 0.5 : 1, transition: "opacity 0.2s" }}>
               {/* Verdict */}
-              <div style={{ background: beatsC ? "rgba(0,255,136,0.05)" : "rgba(255,68,102,0.05)", border: `1px solid ${beatsC ? "rgba(0,255,136,0.2)" : "rgba(255,68,102,0.2)"}`, borderRadius: 12, padding: "16px 20px", marginBottom: 16 }}>
+              <div style={{ background: "rgba(0,255,136,0.05)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: 12, padding: "16px 20px", marginBottom: 16 }}>
                 <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 8 }}>◈ VERDICT · {result.start} TO {result.end}</div>
                 <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.7, fontFamily: "Georgia, serif" }}>
-                  {beatsC
-                    ? `Following the signals turned $10,000 into ${money(s.final)} against ${money(c.final)} for holding the C Fund, with a worst drawdown of ${pct(s.maxDrawdown)} versus ${pct(c.maxDrawdown)}.`
-                    : `Holding the C Fund turned $10,000 into ${money(c.final)}; following the signals reached ${money(s.final)}. The signals cut the worst drawdown from ${pct(c.maxDrawdown)} to ${pct(s.maxDrawdown)}, at the cost of ${((c.cagr - s.cagr) * 100).toFixed(1)} percentage points a year in compounding.`}
-                  {" "}The strategy switched {s.switches} times and spent {pct(s.timeIn.G, 0).replace("+", "")} of the period in the G Fund.
+                  The trend rule turned $10,000 into {money(t.final)} against {money(c.final)} for holding the C Fund
+                  {keptShare > 0 && keptShare < 1 ? `, keeping ${Math.round(keptShare * 100)}% of its compounding` : ""}
+                  {" "}while the worst drawdown went from {pct(c.maxDrawdown)} to {pct(t.maxDrawdown)}. It switched {t.switches} times and sat in G for {Math.round(t.timeIn.G * 100)}% of the period.
+                  {" "}The five-signal score on its own reached {money(k.final)} with {k.switches} switches, which is why it is shown as context rather than used as the action rule.
                 </p>
               </div>
 
               {/* Stat tiles */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
-                <Stat label="SIGNALS · CAGR" value={pct(s.cagr)} sub={`${money(s.final)} final`} tone={beatsC ? "good" : undefined} />
-                <Stat label="C FUND · CAGR" value={pct(c.cagr)} sub={`${money(c.final)} final`} tone={beatsC ? undefined : "good"} />
-                <Stat label="SIGNALS · WORST DRAWDOWN" value={pct(s.maxDrawdown)} tone="bad" />
+                <Stat label="TREND RULE · CAGR" value={pct(t.cagr)} sub={`${money(t.final)} final`} tone={t.cagr >= c.cagr ? "good" : undefined} />
+                <Stat label="C FUND · CAGR" value={pct(c.cagr)} sub={`${money(c.final)} final`} tone={c.cagr > t.cagr ? "good" : undefined} />
+                <Stat label="TREND RULE · WORST DRAWDOWN" value={pct(t.maxDrawdown)} tone="bad" />
                 <Stat label="C FUND · WORST DRAWDOWN" value={pct(c.maxDrawdown)} tone="bad" />
               </div>
 
@@ -225,7 +226,7 @@ export default function Backtest() {
                     <Tooltip content={<CurveTooltip />} cursor={{ stroke: "#334155", strokeWidth: 1 }} />
                     <Legend wrapperStyle={{ fontSize: 11, fontFamily: mono, color: "#94a3b8", paddingTop: 8 }} iconType="plainline" />
                     {SERIES.map((sr) => (
-                      <Line key={sr.key} type="monotone" dataKey={sr.key} name={sr.label} stroke={sr.color} strokeWidth={sr.key === "strategy" ? 2.5 : 2}
+                      <Line key={sr.key} type="monotone" dataKey={sr.key} name={sr.label} stroke={sr.color} strokeWidth={sr.key === "trend" ? 2.5 : 2}
                         dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: "#070d1a" }} isAnimationActive={false} />
                     ))}
                   </LineChart>
@@ -233,19 +234,19 @@ export default function Backtest() {
                 <div style={{ padding: "0 6px" }}><HoldingsBand curve={result.curve} /></div>
               </div>
 
-              {/* Annual returns */}
+              {/* Annual returns + switches */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 20 }}>
                 <div style={{ background: "rgba(15,23,42,0.6)", border: "1px solid #1e293b", borderRadius: 12, padding: 14, minWidth: 0 }}>
                   <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 8 }}>RETURN BY YEAR</div>
                   <div style={{ overflowX: "auto" }}>
                     <table className="bt-table">
-                      <thead><tr><th>YEAR</th><th>SIGNALS</th><th>C FUND</th><th>EQUAL WT</th></tr></thead>
+                      <thead><tr><th>YEAR</th><th>TREND RULE</th><th>C FUND</th><th>5-SIGNAL</th></tr></thead>
                       <tbody>
                         {years.map((y) => (
                           <tr key={y.year}>
                             <td style={{ color: "#94a3b8" }}>{y.year}</td>
-                            {["strategy", "C", "EW"].map((k) => (
-                              <td key={k} style={{ color: y[k] == null ? "#334155" : y[k] < 0 ? "#ff4466" : "#e2e8f0" }}>{y[k] == null ? "—" : pct(y[k])}</td>
+                            {["trend", "C", "composite"].map((key) => (
+                              <td key={key} style={{ color: y[key] == null ? "#334155" : y[key] < 0 ? "#ff4466" : "#e2e8f0" }}>{y[key] == null ? "—" : pct(y[key])}</td>
                             ))}
                           </tr>
                         ))}
@@ -255,12 +256,12 @@ export default function Backtest() {
                 </div>
 
                 <div style={{ background: "rgba(15,23,42,0.6)", border: "1px solid #1e293b", borderRadius: 12, padding: 14, minWidth: 0 }}>
-                  <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 8 }}>LAST {result.switches.length} SWITCHES · HOLDING {FUND_NAMES[s.lastHeld]} NOW</div>
+                  <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 8 }}>TREND RULE · EVERY SWITCH · IN {FUND_NAMES[t.lastHeld]} NOW</div>
                   <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
                     <table className="bt-table">
                       <thead><tr><th>DATE</th><th>FROM</th><th>TO</th></tr></thead>
                       <tbody>
-                        {result.switches.map((sw, i) => (
+                        {t.recentSwitches.map((sw, i) => (
                           <tr key={i}>
                             <td style={{ color: "#94a3b8" }}>{sw.date}</td>
                             <td style={{ color: FUND_COLORS[sw.from] }}>{sw.from}</td>
@@ -271,8 +272,8 @@ export default function Backtest() {
                     </table>
                   </div>
                   <div style={{ fontSize: 10, color: "#475569", marginTop: 10, lineHeight: 1.6 }}>
-                    Time in each fund:{" "}
-                    {Object.entries(s.timeIn).map(([id, share]) => `${id} ${(share * 100).toFixed(0)}%`).join(" · ")}
+                    Trend rule time in C {Math.round(t.timeIn.C * 100)}% · G {Math.round(t.timeIn.G * 100)}%.
+                    Five-signal score: {k.switches} switches, time in {Object.entries(k.timeIn).map(([id, share]) => `${id} ${Math.round(share * 100)}%`).join(" · ")}.
                   </div>
                 </div>
               </div>
@@ -280,10 +281,10 @@ export default function Backtest() {
               {/* Rules */}
               <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.8, borderTop: "1px solid #0f172a", paddingTop: 14 }}>
                 <div style={{ fontSize: 9, letterSpacing: 3, marginBottom: 6 }}>HOW THIS WAS REPLAYED</div>
-                Each trading day the five funds are scored exactly as the dashboard scores them, using the trailing {result.lookback} closes.
-                If the top-ranked fund reads SWITCH IN and it is not already held, the strategy moves into it at the next close.
-                If the fund held reads SWITCH OUT, it moves to G. TSP allows two unrestricted interfund transfers per calendar month, after which only moves into G are permitted, and the replay obeys that.
-                Benchmarks reinvest nothing and pay no costs; neither does the strategy. Past performance of a rule set does not predict its future, and this page is not financial advice.
+                Trend rule: hold C while it closes more than {Math.round(result.trendRule.band * 100)}% above its {result.trendRule.n}-day average, move to G once it closes more than {Math.round(result.trendRule.band * 100)}% below, otherwise do nothing.
+                Five-signal score: each day the funds are scored exactly as the dashboard scores them using the trailing {result.lookback} closes; move into the top-ranked fund when it reads BUY, to G when the held fund reads SELL.
+                Both act at the close after the signal and obey the TSP limit of two unrestricted interfund transfers per calendar month (further moves only into G).
+                Benchmarks reinvest nothing and pay no costs; neither do the rules. Past performance of a rule set does not predict its future, and this page is not financial advice.
               </div>
             </div>
           )}

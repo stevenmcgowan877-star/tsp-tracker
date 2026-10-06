@@ -1,12 +1,13 @@
 # TSP Fund Signal Tracker
 
-A live dashboard that tells you when to switch between TSP (Thrift Savings Plan) funds based on technical indicators and real market data.
+A live dashboard for TSP (Thrift Savings Plan) allocation: one evidence-backed action rule on official tsp.gov prices, plus technical signals for context.
 
 ## Features
 
 - **Official TSP share prices** from tsp.gov (all five funds, including the G Fund), with Alpha Vantage ETF proxies as fallback
 - **5 signals per fund**: Moving Averages, RSI (Wilder), MACD (12/26/9), Supply & Demand Zones, Volatility regime (10-day vs 60-day)
-- **Traffic light recommendations**: SWITCH IN / HOLD / SWITCH OUT
+- **One action rule**: BE IN C or BE IN G, from a 200-day trend filter with a 3% band, backed by a 22-year replay
+- **Traffic light conditions per fund**: BUY SIGNALS / MIXED / SELL SIGNALS from the five-signal score (context, not the action rule)
 - **AI analysis** powered by Claude — plain-English recommendation on what to do
 - **Fund ranking** — all 5 funds ranked by composite signal strength
 - Auto-caches data for 15 minutes to stay within free API limits
@@ -80,7 +81,26 @@ npm test        # indicator math and signal engine (node:test, no extra deps)
 npm run lint    # next/core-web-vitals
 ```
 
-### How the composite score works
+### The action rule
+
+The dashboard's one instruction comes from a slow trend filter on the C Fund (`lib/trendRule.js`):
+
+- Hold **C** while it closes more than 3% above its 200-day simple moving average.
+- Move everything to **G** once it closes more than 3% below.
+- Otherwise do nothing. Check on the close, act at the next close (a TSP interfund transfer requested before noon ET settles that day).
+
+Why this rule and not the five-signal score: replayed on official tsp.gov prices from 2004 to 2026, acting at the next close and obeying the two-transfers-per-month limit, the results were
+
+| Strategy | CAGR | Worst drawdown | Sharpe | Switches |
+|---|---|---|---|---|
+| Hold C Fund | 11.2% | −55% | 0.43 | 1 |
+| Trend rule, C or G, 200-day, 3% band | 10.3% | −19% | 0.60 | 25 |
+| Five-signal score, daily | 6.1% | −30% | 0.28 | ~500 |
+| Five-signal score retuned to trend weights | 4.7% | −27% | 0.15 | ~520 |
+
+Robustness checks: all 25 combinations of average length (100 to 300 days) and band (0 to 5%) landed between 8.3% and 10.4% CAGR with drawdowns of −17% to −23%; across 69 rolling five-year windows the rule had the shallower drawdown in 86% and the higher Sharpe in 61%; in 300 block-bootstrapped 20-year histories its drawdown was shallower in 91% of paths at a median cost of about three points of CAGR. Rotating into S or I by momentum added drawdown without return; parking in F instead of G added return but deepened the 2022 loss; executing three closes late doubled the worst drawdown. The rule lags in strong bull markets and gets whipsawed by V-shaped crashes such as 2020. It is insurance against 2008-style losses, not a return booster. `/backtest` replays it and the five-signal score side by side.
+
+### How the five-signal score works (context only)
 
 Each signal scores −1, 0 or +1 (MACD scores ±0.7) and is weighted:
 
@@ -92,13 +112,11 @@ Each signal scores −1, 0 or +1 (MACD scores ±0.7) and is weighted:
 | Supply / demand | 0.15 | within 2% of 20-day low | within 2% of 20-day high |
 | Volatility regime | 0.15 | 10-day vol < 80% of 60-day vol | 10-day vol > 130% of 60-day vol |
 
-Composite above +0.25 shows **SWITCH IN**, below −0.25 shows **SWITCH OUT**, otherwise **HOLD**. The RSI and zone signals are contrarian, so a fund at fresh highs usually reads HOLD rather than SWITCH IN. Weights live in `lib/marketData.js` (`WEIGHTS`).
+Composite above +0.25 reads BUY, below −0.25 reads SELL, otherwise MIXED. The RSI and zone signals are contrarian, so a fund at fresh highs usually reads MIXED. Weights live in `lib/marketData.js` (`WEIGHTS`). The score describes conditions on the dashboard; it is not the action rule.
 
 ### Backtest (`/backtest`)
 
-The backtest page replays those exact rules over the full tsp.gov history (2003 onward) and compares the result with holding the C Fund, holding the G Fund, and an equal-weight C/S/I/F mix rebalanced monthly. The replay acts on each day's signal at the next close, follows the TSP limit of two unrestricted interfund transfers per month (after that only moves into G), and ignores costs. Range presets cover 1, 3, 5 and 10 years and the whole history. The engine is `lib/backtest.js`; results are cached for 6 hours.
-
-As of October 2026 the full-history result is sobering: the signals compound at roughly 6% a year against 11% for holding C, with about half the worst drawdown. Treat the dashboard as a risk gauge, not a return booster.
+The backtest page replays the trend rule and the five-signal score over the full tsp.gov history (2004 onward) and compares them with holding the C Fund, holding the G Fund, and an equal-weight C/S/I/F mix rebalanced monthly. Range presets cover 1, 3, 5 and 10 years and the whole history. The engine is `lib/backtest.js`; results are cached for 6 hours.
 
 ---
 

@@ -1,10 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { FUNDS, fetchFundPrices, computeSignals } from "../../lib/marketData.js";
+import { fetchTspPrices } from "../../lib/tspGov.js";
+import { evaluateTrendRule } from "../../lib/trendRule.js";
 
 // The project deliberately uses Haiku for this short, frequent call.
 const MODEL = "claude-haiku-4-5-20251001";
 
-const SYSTEM_PROMPT = `You advise a federal employee on their Thrift Savings Plan (TSP) allocation using the technical signals supplied. Rules of the plan that matter:
+const SYSTEM_PROMPT = `You advise a federal employee on their Thrift Savings Plan (TSP) allocation using the readings supplied. The tracker has one action rule and a set of context signals:
+- Action rule: hold C while it closes more than 3% above its 200-day average; move to G once it closes more than 3% below; otherwise do nothing. Replayed on official prices since 2004 it kept most of C's return with a third of the worst drawdown. Its current state is given first; your recommendation must agree with it unless the context signals show something the reader should prepare for.
+- Context signals: a five-signal technical score per fund (moving averages, RSI, MACD, supply/demand zone, volatility). Replayed alone they underperformed badly, so use them to describe conditions, not to override the rule.
+Rules of the plan that matter:
 - Participants get two unrestricted interfund transfers per calendar month; after that, moves may only go into the G Fund. Mention this when recommending more than one switch.
 - The G Fund never loses value and has no technical signals; treat it as the defensive option.
 - C, S and I are equity funds (large cap, small/mid cap, international). F is bonds.
@@ -21,10 +26,17 @@ export function describeFund(f) {
     `10-day volatility ${f.volatility}% annualised and ${vol} vs 60-day.`;
 }
 
-export function buildSummary(funds, { official, asOf }) {
+export function describeTrend(trend) {
+  if (!trend || !trend.available) return "Action rule: unavailable (insufficient history).";
+  const on = trend.state === "ON";
+  return `Action rule: ${on ? "ON, hold C" : "OFF, hold G"} since ${trend.since}. C closed ${trend.price.toFixed(2)}, ${trend.pctVsSma > 0 ? "+" : ""}${trend.pctVsSma.toFixed(1)}% vs its ${trend.n}-day average ${trend.sma.toFixed(2)}; ` +
+    (on ? `moves to G if C closes below ${trend.sellTrigger.toFixed(2)}.` : `moves to C if C closes above ${trend.buyTrigger.toFixed(2)}.`);
+}
+
+export function buildSummary(funds, { official, asOf, trend }) {
   const source = official ? "official tsp.gov share prices" : "ETF proxy prices (SPY, IWM, EFA, AGG)";
   const lines = funds.map(describeFund).join("\n");
-  return `Data: ${source}, last bar ${asOf}. Funds ranked by composite score:\n${lines}`;
+  return `Data: ${source}, last bar ${asOf}.\n${describeTrend(trend)}\nContext signals, funds ranked by composite score:\n${lines}`;
 }
 
 export default async function handler(req, res) {
@@ -43,7 +55,9 @@ export default async function handler(req, res) {
     );
     funds.sort((a, b) => b.composite - a.composite);
     asOf = funds[0].prices[funds[0].prices.length - 1]?.date || "unknown";
-    summary = buildSummary(funds, { official: funds.every((f) => f.source === "tsp"), asOf });
+    const tsp = process.env.TSP_DATA_SOURCE === "proxy" ? null : await fetchTspPrices();
+    const trend = evaluateTrendRule(tsp && tsp.C ? tsp.C : funds.find((f) => f.id === "C")?.prices || []);
+    summary = buildSummary(funds, { official: funds.every((f) => f.source === "tsp"), asOf, trend });
   } catch (err) {
     console.error("ai-insight: could not build fund summary", err);
     return res.status(500).json({ error: "Could not load fund data" });

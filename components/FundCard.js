@@ -3,9 +3,9 @@ import MiniChart from "./MiniChart";
 
 function SignalBadge({ signal }) {
   const cfg = {
-    BUY:   { color: "#00ff88", bg: "#00ff8818", border: "#00ff8844", label: "SWITCH IN" },
-    HOLD:  { color: "#fbbf24", bg: "#fbbf2418", border: "#fbbf2444", label: "HOLD" },
-    AVOID: { color: "#ff4466", bg: "#ff446618", border: "#ff446644", label: "SWITCH OUT" },
+    BUY:   { color: "#00ff88", bg: "#00ff8818", border: "#00ff8844", label: "BUY SIGNALS" },
+    HOLD:  { color: "#fbbf24", bg: "#fbbf2418", border: "#fbbf2444", label: "MIXED" },
+    AVOID: { color: "#ff4466", bg: "#ff446618", border: "#ff446644", label: "SELL SIGNALS" },
   }[signal] || {};
   return (
     <span style={{

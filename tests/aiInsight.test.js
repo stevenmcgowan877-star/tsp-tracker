@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { describeFund, buildSummary } from "../pages/api/ai-insight.js";
+import { describeFund, buildSummary, describeTrend } from "../pages/api/ai-insight.js";
 
 const c = { id: "C", desc: "S&P 500 Index", signal: "BUY", composite: 0.44, current: 125.447, change: "0.67",
   maScore: 1, rsi: 59.4, macdHist: 0.21, inDemandZone: false, inSupplyZone: true, volScore: 0, volatility: 8.4 };
@@ -20,10 +20,21 @@ test("describeFund keeps the G Fund out of the technical discussion", () => {
   assert.ok(!line.includes("RSI"));
 });
 
-test("buildSummary states the data source and as-of date", () => {
-  const official = buildSummary([c, g], { official: true, asOf: "2026-10-05" });
+const trendOn = { available: true, state: "ON", since: "2026-04-09", price: 125.447, pctVsSma: 7.98, n: 200, sma: 116.18, sellTrigger: 112.69, buyTrigger: 119.67 };
+
+test("describeTrend states the rule's state and the next trigger", () => {
+  const line = describeTrend(trendOn);
+  assert.ok(line.startsWith("Action rule: ON, hold C since 2026-04-09"));
+  assert.ok(line.includes("below 112.69"));
+  assert.ok(describeTrend({ ...trendOn, state: "OFF" }).includes("above 119.67"));
+  assert.match(describeTrend({ available: false }), /unavailable/);
+});
+
+test("buildSummary states the data source, as-of date and action rule before the signals", () => {
+  const official = buildSummary([c, g], { official: true, asOf: "2026-10-05", trend: trendOn });
   assert.ok(official.startsWith("Data: official tsp.gov share prices, last bar 2026-10-05."));
-  const proxy = buildSummary([c, g], { official: false, asOf: "2026-10-05" });
+  assert.ok(official.split("\n")[1].startsWith("Action rule: ON"));
+  const proxy = buildSummary([c, g], { official: false, asOf: "2026-10-05", trend: trendOn });
   assert.ok(proxy.includes("ETF proxy prices"));
-  assert.equal(official.split("\n").length, 3);
+  assert.equal(official.split("\n").length, 5);
 });

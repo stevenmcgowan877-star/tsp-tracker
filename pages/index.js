@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import FundCard from "../components/FundCard";
+import ActionCard from "../components/ActionCard";
 
 function Recommendation({ funds }) {
   if (!funds.length) return null;
@@ -14,7 +15,7 @@ function Recommendation({ funds }) {
       padding: "20px 24px", marginBottom: 24, position: "relative", overflow: "hidden",
     }}>
       <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,255,136,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ fontSize: 9, color: "#475569", fontFamily: "monospace", letterSpacing: 3, marginBottom: 12 }}>◈ TOP RECOMMENDATION TODAY</div>
+      <div style={{ fontSize: 9, color: "#475569", fontFamily: "monospace", letterSpacing: 3, marginBottom: 12 }}>◈ SIGNAL CONDITIONS · CONTEXT, NOT THE ACTION RULE</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div>
           <span style={{ fontFamily: "monospace", fontSize: 38, fontWeight: 700, color: top.color }}>{top.id}</span>
@@ -22,15 +23,15 @@ function Recommendation({ funds }) {
         </div>
         <div style={{ flex: 1, color: "#64748b", fontSize: 13, fontStyle: "italic", lineHeight: 1.6 }}>
           {top.signal === "BUY"
-            ? `${top.name} is showing the strongest buy signals. Consider switching into or increasing your allocation here.`
+            ? `${top.name} leads the five-signal score and reads BUY. Replayed since 2004, acting on these daily scores alone returned about half of what the trend rule above did, so treat this as colour on the market, not an instruction.`
             : top.signal === "AVOID"
-            ? `Every fund is flashing sell signals, ${top.name} least of all. Consider staying defensive in G or F until conditions improve.`
-            : `${top.name} leads on composite score, but signals are mixed — monitor closely before acting.`}
+            ? `Every fund reads SELL on the five-signal score, ${top.name} least of all. The action rule above decides whether that matters.`
+            : `${top.name} leads the five-signal score but readings are mixed. The action rule above decides; this panel describes conditions.`}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 10, height: 10, borderRadius: "50%", background: topColor, boxShadow: `0 0 10px ${topColor}` }} />
           <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, letterSpacing: 2, color: topColor }}>
-            {top.signal === "BUY" ? "SWITCH IN" : top.signal === "AVOID" ? "STAY DEFENSIVE" : "HOLD"}
+            {top.signal === "BUY" ? "CONDITIONS: BUY" : top.signal === "AVOID" ? "CONDITIONS: SELL" : "CONDITIONS: MIXED"}
           </span>
         </div>
       </div>
@@ -58,6 +59,7 @@ export default function Home() {
   const [updatedAt, setUpdatedAt] = useState(null);
   const [isDemo, setIsDemo] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
+  const [trend, setTrend] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aiInsight, setAiInsight] = useState("");
@@ -74,6 +76,7 @@ export default function Home() {
       setUpdatedAt(json.updatedAt);
       setIsDemo(json.isDemo);
       setIsOfficial(Boolean(json.isOfficial));
+      setTrend(json.trend || null);
     } catch (e) {
       setError(e.message);
     }
@@ -135,7 +138,7 @@ export default function Home() {
                   FUND SIGNAL <span style={{ color: "#00ff88" }}>TRACKER</span>
                 </h1>
                 <p style={{ fontSize: 11, color: "#334155", fontStyle: "italic", marginTop: 4 }}>
-                  Moving Averages · RSI · MACD · Supply & Demand Zones · Volatility · {isOfficial ? "Official TSP Prices" : "Live Proxy Data"}
+                  200-Day Trend Rule · Moving Averages · RSI · MACD · Zones · Volatility · {isOfficial ? "Official TSP Prices" : "Live Proxy Data"}
                 </p>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -182,6 +185,7 @@ export default function Home() {
             </div>
           ) : (
             <>
+              <ActionCard trend={trend} />
               <Recommendation funds={funds} />
 
               {/* AI Insight */}

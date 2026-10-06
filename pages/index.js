@@ -110,7 +110,7 @@ export default function Home() {
     setAiInsight("");
     try {
       // The server builds the fund summary from the same cached data the page shows.
-      const res = await fetch("/api/ai-insight", { method: "POST" });
+      const res = await fetch("/api/ai-insight", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coverage }) });
       const data = await res.json();
       setAiInsight(data.insight || data.error || "No insight returned.");
     } catch {

@@ -30,6 +30,15 @@ test("describeTrend states the rule's state and the next trigger", () => {
   assert.match(describeTrend({ available: false }), /unavailable/);
 });
 
+test("describeTrend states the reader's split, never all-or-nothing below 100%", () => {
+  const off = describeTrend({ ...trendOn, state: "OFF" }, 0.75);
+  assert.ok(off.includes("the advice now is 75% in G and 25% in C"));
+  const on = describeTrend(trendOn, 0.75);
+  assert.ok(on.includes("the advice now is 100% in C"));
+  assert.ok(on.includes("the advice becomes 75% in G and 25% in C"));
+  assert.ok(describeTrend({ ...trendOn, state: "OFF" }, 1).includes("the advice now is 100% in G"));
+});
+
 test("buildSummary states the data source, as-of date and action rule before the signals", () => {
   const official = buildSummary([c, g], { official: true, asOf: "2026-10-05", trend: trendOn });
   assert.ok(official.startsWith("Data: official tsp.gov share prices, last bar 2026-10-05."));

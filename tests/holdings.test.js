@@ -98,3 +98,27 @@ test("the monthly budget counts transfers by processing month", () => {
   assert.equal(b.remaining, 0);
   assert.equal(transfersThisMonth([], now).remaining, 2);
 });
+
+test("the transfer ticket gives whole percentages totalling 100 and the dollars that move", async () => {
+  const { transferTicket } = await import("../lib/holdings.js");
+  const offTrend = { available: true, state: "OFF", hold: "G", price: 100, sellTrigger: 97, buyTrigger: 103 };
+  const t = transferTicket({ C: "80000", S: "20000" }, offTrend, 0.75);
+  assert.equal(t.needed, true);
+  assert.deepEqual([t.percents.C, t.percents.G, t.percents.S], [25, 75, 0]);
+  assert.equal(Object.values(t.percents).reduce((a, b) => a + b, 0), 100);
+  const by = Object.fromEntries(t.changes.map((m) => [m.fund, Math.round(m.change)]));
+  assert.deepEqual(by, { G: 75000, S: -20000, C: -55000 });
+  assert.equal(t.intoGOnly, true, "selling C and S into G is a G-only move");
+  assert.equal(t.blocked, false);
+  const exhausted = { remaining: 0 };
+  assert.equal(transferTicket({ C: "80000", S: "20000" }, offTrend, 0.75, exhausted).blocked, false, "G-only moves are allowed after two transfers");
+  // Back ON from G: buying C needs an unrestricted transfer.
+  const onTrend = { ...offTrend, state: "ON", hold: "C" };
+  const back = transferTicket({ C: "25000", G: "75000" }, onTrend, 0.75, exhausted);
+  assert.deepEqual([back.percents.C, back.percents.G], [100, 0]);
+  assert.equal(back.intoGOnly, false);
+  assert.equal(back.blocked, true, "a move into C waits for next month once both are used");
+  // Already positioned: nothing to do.
+  assert.deepEqual(transferTicket({ C: "25000", G: "75000" }, offTrend, 0.75), { needed: false });
+  assert.equal(transferTicket({}, offTrend, 0.75), null);
+});

@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { HOLDING_FUNDS, HOLDINGS_STORAGE_KEY, assessHoldings, readStoredHoldings, readTransfers, writeTransfers, processingDate, transfersThisMonth, MONTHLY_TRANSFER_LIMIT } from "../lib/holdings";
+import { HOLDING_FUNDS, HOLDINGS_STORAGE_KEY, assessHoldings, transferTicket, readStoredHoldings, readTransfers, writeTransfers, processingDate, transfersThisMonth, MONTHLY_TRANSFER_LIMIT } from "../lib/holdings";
 
 const mono = "'Space Mono', monospace";
 const FUND_COLORS = { C: "#00ff88", S: "#00cfff", I: "#a78bfa", F: "#fbbf24", G: "#94a3b8", L: "#f472b6" };
 const STORAGE_KEY = HOLDINGS_STORAGE_KEY;
 const money = (x) => `${x < 0 ? "-" : ""}$${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
+const signedMoney = (x) => `${x >= 0 ? "+" : "−"}$${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
+const monthName = (ym, offset = 0) => {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + offset, 1)).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+};
 
 function writeStored(balances) {
   try {
@@ -35,6 +40,8 @@ export default function HoldingsPanel({ trend, backtest, coverage }) {
   }, []);
 
   const assessment = useMemo(() => assessHoldings(balances, trend, backtest, coverage), [balances, trend, backtest, coverage]);
+  const remaining = budget.remaining;
+  const ticket = useMemo(() => transferTicket(balances, trend, coverage, { remaining }), [balances, trend, coverage, remaining]);
 
   const update = (id, value) => {
     const next = { ...balances, [id]: value.replace(/[^\d.]/g, "") };
@@ -113,6 +120,31 @@ export default function HoldingsPanel({ trend, backtest, coverage }) {
             <div style={{ width: 10, height: 10, borderRadius: "50%", flexShrink: 0, background: assessment.aligned == null ? "#475569" : assessment.aligned ? "#00ff88" : "#fbbf24", boxShadow: `0 0 8px ${assessment.aligned ? "#00ff88" : "#fbbf24"}` }} />
             <div style={{ fontSize: 13, color: "#94a3b8", fontFamily: "Georgia, serif", lineHeight: 1.6 }}>{assessment.message}</div>
           </div>
+
+          {ticket?.needed && (
+            <div style={{ marginTop: 12, border: "1px solid rgba(251,191,36,0.35)", background: "rgba(251,191,36,0.05)", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 9, letterSpacing: 2, color: "#fbbf24", marginBottom: 8 }}>TRANSFER TICKET · TSP.GOV → INTERFUND TRANSFER, BEFORE NOON ET</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontFamily: mono }}>
+                {["C", "G"].map((id) => (
+                  <span key={id} style={{ border: `1px solid ${FUND_COLORS[id]}`, color: FUND_COLORS[id], borderRadius: 6, padding: "4px 10px", fontSize: 14, fontWeight: 700 }}>{id} {ticket.percents[id]}%</span>
+                ))}
+                <span style={{ fontSize: 11, color: "#64748b" }}>every other fund 0%</span>
+              </div>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, fontFamily: mono, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {ticket.changes.map((m) => (
+                  <span key={m.fund}><span style={{ color: FUND_COLORS[m.fund] }}>{m.fund}</span> {signedMoney(m.change)}</span>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, lineHeight: 1.6 }}>
+                {ticket.blocked
+                  ? `Both transfers for ${monthName(budget.month)} are used and this one buys C, so it has to wait until ${monthName(budget.month, 1)}. Until then, point new contributions at C with a contribution allocation, which is unlimited.`
+                  : ticket.intoGOnly
+                    ? `This only moves money into G, which the TSP allows even after both monthly transfers are used. `
+                    : `This uses one of your ${MONTHLY_TRANSFER_LIMIT} unrestricted transfers for the month (${budget.remaining} left). `}
+                {!ticket.blocked && "Then set your contribution allocation to the same split; it is unlimited and does not count. Press “I made a transfer” once it is submitted."}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 12 }}>
             {assessment.cushionDollars != null && (

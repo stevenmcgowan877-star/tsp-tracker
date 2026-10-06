@@ -6,11 +6,14 @@ A live dashboard for TSP (Thrift Savings Plan) allocation: one evidence-backed a
 
 - **Official TSP share prices** from tsp.gov (all five funds, including the G Fund), with Alpha Vantage ETF proxies as fallback
 - **5 signals per fund**: Moving Averages, RSI (Wilder), MACD (12/26/9), Supply & Demand Zones, Volatility regime (10-day vs 60-day)
-- **One action rule**: BE IN C or BE IN G, from a 200-day trend filter with a 3% band, backed by a 22-year replay
+- **One action rule**: BE IN C, or move a chosen share (default 75%) to G, from a 200-day trend filter with a 3% band, backed by a 22-year replay
+- **Holdings panel and transfer ticket**: your balances (kept in your browser) checked against the rule, with the exact whole-number percentages to enter in a tsp.gov interfund transfer, the dollars that move, and whether this month's two-transfer limit allows it
+- **Backtest, crisis replays, L Fund lens and retirement planner**, all running the same rule at your chosen share, plus a live record since the rule was fixed
+- **Daily flip alert** to any webhook via a Vercel cron
 - **Traffic light conditions per fund**: BUY SIGNALS / MIXED / SELL SIGNALS from the five-signal score (context, not the action rule)
 - **AI analysis** powered by Claude — plain-English recommendation on what to do
 - **Fund ranking** — all 5 funds ranked by composite signal strength
-- Auto-caches data for 15 minutes to stay within free API limits
+- Caches tsp.gov prices for 6 hours (Alpha Vantage proxy data for 15 minutes, to stay within free API limits)
 
 ## Data sources
 
@@ -166,6 +169,8 @@ A second experiment (October 2026) tested the extensions the research suggested,
 Filtering S and I as well cost about a point of return a year in both halves of the history, traded three times as often and ran into the transfer limit; averaging lookbacks added transfers without adding return. None of the extensions were adopted.
 
 The choice is stored in the browser and used by the action card, the holdings check, the backtest page and the planner. The flip alert reads `RULE_COVERAGE` as a fraction (`0.5`) or a percentage (`50` or `50%`); unset or unreadable, it uses the dashboard's default of 75%. New contributions can be pointed at the same split with a contribution election, which is unlimited and does not use up the two monthly transfers.
+
+When your stored balances do not match the advice, the holdings panel shows a transfer ticket: the whole-number percentages to type into tsp.gov's interfund transfer form (C and G, every other fund 0%, totalling 100%), the dollar change per fund, and whether the move fits this month's limit. A move that only adds to G is allowed even after both transfers are used; a move back into C is not, and the ticket says to wait for next month and point contributions at C in the meantime. Engine in `transferTicket` in `lib/holdings.js`.
 
 ### Retirement planner (`/plan`)
 

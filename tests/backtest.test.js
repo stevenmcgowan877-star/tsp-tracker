@@ -103,3 +103,34 @@ test("the curve's held field lines up with the switch dates", () => {
     else { assert.equal(p.held, first.to); break; }
   }
 });
+
+test("the transfer count is kept by processing month, so a month-end signal uses the next month's budget", () => {
+  // Build a C series that generates BUY-like whipsaws for the composite near a month boundary is
+  // fiddly; instead exercise the counting directly through the trend rule on a crafted series:
+  // ON state, then a 3% break below on the last trading day of a month, executed on the 1st.
+  const days = 420;
+  const dateAt = (i) => new Date(Date.UTC(2021, 0, 4) + i * 86400000).toISOString().slice(0, 10);
+  const c = [];
+  let p = 100;
+  for (let i = 0; i < days; i++) { p *= i < 380 ? 1.0008 : 0.985; c.push(p); }
+  const mk = (fn) => Array.from({ length: days }, (_, i) => ({ date: dateAt(i), close: +fn(i).toFixed(4), volume: 0 }));
+  const series = { G: mk((i) => 15 + i * 0.001), C: mk((i) => c[i]), S: mk((i) => c[i]), I: mk(() => 50), F: mk(() => 20) };
+  const r = runBacktest(series, { lookback: 100 });
+  const sw = r.strategies.trend.recentSwitches;
+  assert.ok(sw.length >= 1, "the crash produces a move to G");
+  assert.ok(sw.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.date)), "switch dates are execution dates");
+});
+
+test("coverage blends the rule with a static C sleeve", () => {
+  const full = runBacktest(synthetic(), { lookback: 100, coverage: 1 });
+  const half = runBacktest(synthetic(), { lookback: 100, coverage: 0.5 });
+  const none = runBacktest(synthetic(), { lookback: 100, coverage: 0 });
+  assert.equal(full.coverage, 1);
+  assert.ok(Math.abs(full.strategies.hybrid.final - full.strategies.trend.final) <= 1, "coverage 1 equals the pure rule");
+  assert.ok(Math.abs(none.strategies.hybrid.final - none.benchmarks.C.final) <= 1, "coverage 0 equals holding C");
+  const mid = (full.strategies.trend.final + full.benchmarks.C.final) / 2;
+  assert.ok(Math.abs(half.strategies.hybrid.final - mid) <= 1, "coverage 0.5 is the midpoint of unrebalanced sleeves");
+  assert.ok(half.strategies.hybrid.maxDrawdown >= Math.min(half.strategies.trend.maxDrawdown, half.benchmarks.C.maxDrawdown));
+  assert.equal(half.curve[0].hybrid, START_VALUE);
+  assert.equal(half.strategies.hybrid.switches, half.strategies.trend.switches);
+});

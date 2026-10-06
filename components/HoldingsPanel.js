@@ -15,7 +15,7 @@ function writeStored(balances) {
 }
 
 // Balances stay in this browser only (localStorage). Nothing is sent anywhere.
-export default function HoldingsPanel({ trend, backtest }) {
+export default function HoldingsPanel({ trend, backtest, coverage }) {
   const [balances, setBalances] = useState({ C: "", S: "", I: "", F: "", G: "", L: "" });
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -29,7 +29,7 @@ export default function HoldingsPanel({ trend, backtest }) {
     setLoaded(true);
   }, []);
 
-  const assessment = useMemo(() => assessHoldings(balances, trend, backtest), [balances, trend, backtest]);
+  const assessment = useMemo(() => assessHoldings(balances, trend, backtest, coverage), [balances, trend, backtest, coverage]);
 
   const update = (id, value) => {
     const next = { ...balances, [id]: value.replace(/[^\d.]/g, "") };

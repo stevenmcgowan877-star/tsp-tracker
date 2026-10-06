@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { readCoverage } from "../lib/settings";
 import Head from "next/head";
 import ShareMeta from "../components/ShareMeta";
 import Link from "next/link";
@@ -112,7 +113,9 @@ export default function Backtest() {
     const range = RANGES.find((r) => r.key === key) || RANGES[0];
     const start = startFor(range);
     try {
-      const res = await fetch(`/api/backtest${start ? `?start=${start}` : ""}`);
+      const q = new URLSearchParams({ coverage: String(readCoverage()) });
+      if (start) q.set("start", start);
+      const res = await fetch(`/api/backtest?${q}`);
       const json = await res.json();
       if (id !== requestId.current) return;
       if (!res.ok) throw new Error(json.error || "Backtest failed");
@@ -140,6 +143,8 @@ export default function Backtest() {
   const k = result?.strategies?.composite;
   const c = result?.benchmarks?.C;
   const keptShare = t && c && c.cagr > 0 ? t.cagr / c.cagr : 0;
+  const h = result?.strategies?.hybrid;
+  const showMix = h && result.coverage < 1;
 
   return (
     <>
@@ -220,6 +225,7 @@ export default function Backtest() {
                 <Stat label="C FUND · CAGR" value={pct(c.cagr)} sub={`${money(c.final)} final`} tone={c.cagr > t.cagr ? "good" : undefined} />
                 <Stat label="TREND RULE · WORST DRAWDOWN" value={pct(t.maxDrawdown)} tone="bad" />
                 <Stat label="C FUND · WORST DRAWDOWN" value={pct(c.maxDrawdown)} tone="bad" />
+                {showMix && <Stat label={`YOUR MIX · RULE ON ${Math.round(result.coverage * 100)}%`} value={pct(h.cagr)} sub={`worst loss ${pct(h.maxDrawdown)} · ${money(h.final)} final`} tone="good" />}
               </div>
 
               {/* Equity curves */}

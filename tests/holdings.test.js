@@ -42,12 +42,12 @@ test("equities outside C are called out when the rule is ON", () => {
 });
 
 test("rule OFF wants G and reports no cushion", () => {
-  const safe = assessHoldings({ G: "100000" }, off, backtest);
+  const safe = assessHoldings({ G: "100000" }, off, backtest, 1);
   assert.equal(safe.aligned, true);
   assert.equal(safe.cushionDollars, null);
-  const exposed = assessHoldings({ C: "60000", G: "40000" }, off, backtest);
+  const exposed = assessHoldings({ C: "60000", G: "40000" }, off, backtest, 1);
   assert.equal(exposed.aligned, false);
-  assert.match(exposed.message, /be in G; you hold 60% in equities/);
+  assert.match(exposed.message, /100% in G; you hold 40% in G and 60% in equities/);
 });
 
 test("an unavailable rule yields no alignment verdict", () => {
@@ -63,4 +63,13 @@ test("an L Fund bucket is called out rather than counted as C or G", () => {
   assert.equal(r.lShare, 0.9);
   const offSide = assessHoldings({ L: "100000" }, off, backtest);
   assert.match(offSide.message, /keeps part of your money in equities/);
+});
+
+test("rule OFF with partial coverage wants the G share, not everything", () => {
+  const r = assessHoldings({ C: "25000", G: "75000" }, off, backtest, 0.75);
+  assert.equal(r.aligned, true);
+  assert.deepEqual(r.target, { C: 0.25, G: 0.75 });
+  const wrong = assessHoldings({ C: "100000" }, off, backtest, 0.75);
+  assert.equal(wrong.aligned, false);
+  assert.match(wrong.message, /75% in G and 25% in C/);
 });

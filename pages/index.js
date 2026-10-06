@@ -5,6 +5,7 @@ import Link from "next/link";
 import FundCard from "../components/FundCard";
 import ActionCard from "../components/ActionCard";
 import HoldingsPanel from "../components/HoldingsPanel";
+import { readCoverage, writeCoverage, DEFAULT_COVERAGE } from "../lib/settings";
 
 function Recommendation({ funds }) {
   if (!funds.length) return null;
@@ -63,6 +64,9 @@ export default function Home() {
   const [isOfficial, setIsOfficial] = useState(false);
   const [trend, setTrend] = useState(null);
   const [backtestSummary, setBacktestSummary] = useState(null);
+  const [coverage, setCoverage] = useState(DEFAULT_COVERAGE);
+  useEffect(() => { setCoverage(readCoverage()); }, []);
+  const changeCoverage = (c) => { setCoverage(c); writeCoverage(c); };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aiInsight, setAiInsight] = useState("");
@@ -91,12 +95,12 @@ export default function Home() {
   // Headline backtest numbers for the holdings panel; failure just hides them.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/backtest?summary=1")
+    fetch(`/api/backtest?summary=1&coverage=${coverage}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled && j) setBacktestSummary(j); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [coverage]);
 
   const getAIInsight = async () => {
     if (!funds.length) return;
@@ -214,8 +218,8 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <ActionCard trend={trend} />
-              <HoldingsPanel trend={trend} backtest={backtestSummary} />
+              <ActionCard trend={trend} coverage={coverage} onCoverage={changeCoverage} hybrid={backtestSummary?.strategies?.hybrid} />
+              <HoldingsPanel trend={trend} backtest={backtestSummary} coverage={coverage} />
               <Recommendation funds={funds} />
 
               {/* AI Insight */}

@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { COVERAGE_OPTIONS, targetAllocation, pctLabel } from "../lib/settings";
 
 const mono = "'Space Mono', monospace";
 
 // The one card that tells the reader what to do: the slow trend rule on the
 // C Fund. Everything else on the dashboard is context.
-export default function ActionCard({ trend }) {
+export default function ActionCard({ trend, coverage = 1, onCoverage, hybrid }) {
   if (!trend) return null;
 
   if (!trend.available) {
@@ -19,6 +20,8 @@ export default function ActionCard({ trend }) {
   }
 
   const on = trend.state === "ON";
+  const target = targetAllocation(trend.state, coverage);
+  const headline = on ? "BE IN C" : target.C > 0 ? `${pctLabel(target.G)} G · ${pctLabel(target.C)} C` : "BE IN G";
   const color = on ? "#00ff88" : "#94a3b8";
   const bandPct = (trend.band * 100).toFixed(0);
   const distance = Math.abs(trend.pctVsSma).toFixed(1);
@@ -39,13 +42,13 @@ export default function ActionCard({ trend }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 12, height: 12, borderRadius: "50%", background: color, boxShadow: `0 0 12px ${color}` }} />
           <span style={{ fontFamily: mono, fontSize: 30, fontWeight: 700, color, letterSpacing: -1 }}>
-            {on ? "BE IN C" : "BE IN G"}
+            {headline}
           </span>
         </div>
         <div style={{ flex: 1, minWidth: 220, color: "#94a3b8", fontSize: 13, lineHeight: 1.65, fontFamily: "Georgia, serif" }}>
           {on
-            ? `The C Fund closed ${distance}% above its ${trend.n}-day average. Stay in C. Move everything to G only if it closes below $${trend.sellTrigger.toFixed(2)}, a ${cushion} from here.`
-            : `The C Fund closed ${distance}% below its ${trend.n}-day average. Stay in G. Move back to C only if it closes above $${trend.buyTrigger.toFixed(2)}, a ${cushion} from here.`}
+            ? `The C Fund closed ${distance}% above its ${trend.n}-day average. Stay in C. If it closes below $${trend.sellTrigger.toFixed(2)}, a ${cushion} from here, move ${pctLabel(coverage)} of your balance to G${coverage < 1 ? ` and leave the other ${pctLabel(1 - coverage)} in C` : ""}.`
+            : `The C Fund closed ${distance}% below its ${trend.n}-day average. Hold ${pctLabel(target.G)} in G${target.C > 0 ? ` and ${pctLabel(target.C)} in C` : ""}. Move back to 100% C only if it closes above $${trend.buyTrigger.toFixed(2)}, a ${cushion} from here.`}
         </div>
       </div>
 
@@ -64,8 +67,27 @@ export default function ActionCard({ trend }) {
         ))}
       </div>
 
+      {onCoverage && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
+          <span style={{ fontSize: 9, color: "#475569", letterSpacing: 2 }}>SHARE OF BALANCE THE RULE MOVES</span>
+          {COVERAGE_OPTIONS.map((c) => (
+            <button key={c} onClick={() => onCoverage(c)} aria-pressed={coverage === c} style={{
+              background: coverage === c ? "rgba(0,255,136,0.08)" : "transparent",
+              border: `1px solid ${coverage === c ? "#00ff88" : "#1e293b"}`,
+              color: coverage === c ? "#00ff88" : "#64748b",
+              fontFamily: mono, fontSize: 10, letterSpacing: 1, padding: "4px 10px", borderRadius: 6, cursor: "pointer",
+            }}>{pctLabel(c)}</button>
+          ))}
+          {hybrid && (
+            <span style={{ fontSize: 10, color: "#64748b", fontFamily: mono }}>
+              since 2004: {(hybrid.cagr * 100).toFixed(1)}% a year, worst loss {(hybrid.maxDrawdown * 100).toFixed(0)}%
+            </span>
+          )}
+        </div>
+      )}
+
       <div style={{ marginTop: 12, fontSize: 10, color: "#475569", lineHeight: 1.7 }}>
-        Checked on every close, acted on at the next close: a TSP interfund transfer requested before noon ET settles that day. A ±{bandPct}% band around the average avoids whipsaw; this rule switched {trend.flipCount} times since 2004.{" "}
+        Checked on every close, acted on at the next close: a TSP interfund transfer requested before noon ET settles that day. A ±{bandPct}% band around the average avoids whipsaw; this rule switched {trend.flipCount} times since 2004. Moving less than all of it keeps part of your money in C through every flip, which research on retirement outcomes favours over all-or-nothing. Your contribution election for new money is unlimited and does not use up the two monthly transfers.{" "}
         <Link href="/backtest" style={{ color: "#64748b" }}>See the 22-year replay →</Link>
       </div>
     </div>

@@ -52,3 +52,9 @@ test("postWebhook sends JSON with Slack and Discord keys and fails on non-2xx", 
   assert.equal(body.hold, "C");
   await assert.rejects(() => postWebhook("https://hooks.example/abc", alert, base, async () => ({ ok: false, status: 500 })), /HTTP 500/);
 });
+
+test("a flip to G with partial coverage asks for that share only", () => {
+  const toG = buildAlert({ ...base, state: "OFF", hold: "G", since: "2026-10-05", barsSinceFlip: 0, price: 112.0, pctVsSma: -3.6 }, { coverage: 0.75 });
+  assert.match(toG.text, /75% into G and leave 25% in C/);
+  assert.match(toG.text, /contribution election/);
+});

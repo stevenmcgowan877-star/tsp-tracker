@@ -29,7 +29,10 @@ export default async function handler(req, res) {
   const trend = await loadTrend({ fresh: true });
   if (!trend.available) return res.status(503).json({ error: trend.reason });
 
-  const alert = buildAlert(trend, { alertOnNear: process.env.ALERT_ON_NEAR_TRIGGER === "1" });
+  const alert = buildAlert(trend, {
+    alertOnNear: process.env.ALERT_ON_NEAR_TRIGGER === "1",
+    coverage: process.env.RULE_COVERAGE ? Number(process.env.RULE_COVERAGE) : 1,
+  });
   const dry = req.query.dry === "1";
   const webhook = process.env.ALERT_WEBHOOK_URL;
 

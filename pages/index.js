@@ -5,6 +5,7 @@ import FundCard from "../components/FundCard";
 function Recommendation({ funds }) {
   if (!funds.length) return null;
   const top = funds[0]; // already sorted by composite
+  const topColor = top.signal === "BUY" ? "#00ff88" : top.signal === "AVOID" ? "#ff4466" : "#fbbf24";
   return (
     <div style={{
       background: "linear-gradient(135deg, rgba(0,255,136,0.05) 0%, rgba(0,207,255,0.03) 100%)",
@@ -21,12 +22,14 @@ function Recommendation({ funds }) {
         <div style={{ flex: 1, color: "#64748b", fontSize: 13, fontStyle: "italic", lineHeight: 1.6 }}>
           {top.signal === "BUY"
             ? `${top.name} is showing the strongest buy signals. Consider switching into or increasing your allocation here.`
+            : top.signal === "AVOID"
+            ? `Every fund is flashing sell signals, ${top.name} least of all. Consider staying defensive in G or F until conditions improve.`
             : `${top.name} leads on composite score, but signals are mixed — monitor closely before acting.`}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 10, height: 10, borderRadius: "50%", background: top.signal === "BUY" ? "#00ff88" : "#fbbf24", boxShadow: `0 0 10px ${top.signal === "BUY" ? "#00ff88" : "#fbbf24"}` }} />
-          <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, letterSpacing: 2, color: top.signal === "BUY" ? "#00ff88" : "#fbbf24" }}>
-            {top.signal === "BUY" ? "SWITCH IN" : "HOLD"}
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: topColor, boxShadow: `0 0 10px ${topColor}` }} />
+          <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, letterSpacing: 2, color: topColor }}>
+            {top.signal === "BUY" ? "SWITCH IN" : top.signal === "AVOID" ? "STAY DEFENSIVE" : "HOLD"}
           </span>
         </div>
       </div>
@@ -103,8 +106,7 @@ export default function Home() {
         <title>TSP Fund Signal Tracker</title>
         <meta name="description" content="Live technical signals to help you decide when to switch TSP funds" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-        <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
 
       <style>{`
@@ -136,7 +138,7 @@ export default function Home() {
                   FUND SIGNAL <span style={{ color: "#00ff88" }}>TRACKER</span>
                 </h1>
                 <p style={{ fontSize: 11, color: "#334155", fontStyle: "italic", marginTop: 4 }}>
-                  Moving Averages · RSI · MACD · Supply & Demand Zones · Live Proxy Data
+                  Moving Averages · RSI · MACD · Supply & Demand Zones · Volatility · Live Proxy Data
                 </p>
               </div>
               <div style={{ textAlign: "right" }}>

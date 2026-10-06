@@ -60,6 +60,9 @@ export default function FundCard({ fund }) {
             {fund.source === "demo" && (
               <span style={{ fontSize: 9, color: "#fbbf24", background: "#fbbf2415", border: "1px solid #fbbf2430", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", letterSpacing: 1 }}>DEMO</span>
             )}
+            {fund.source === "synthetic" && (
+              <span title="No ETF tracks the G Fund; signals are neutral by design" style={{ fontSize: 9, color: "#94a3b8", background: "#94a3b815", border: "1px solid #94a3b830", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", letterSpacing: 1 }}>NO PROXY</span>
+            )}
           </div>
           <div style={{ color: "#334155", fontSize: 11, fontStyle: "italic", marginTop: 2 }}>{fund.desc} · via {fund.proxy}</div>
         </div>
@@ -88,6 +91,7 @@ export default function FundCard({ fund }) {
               <ScoreBar label="RSI Momentum" value={fund.rsiScore} />
               <ScoreBar label="MACD Histogram" value={fund.macdScore} />
               <ScoreBar label="Supply / Demand" value={fund.sdScore} />
+              <ScoreBar label="Volatility Regime" value={fund.volScore ?? 0} />
             </div>
 
             {/* Key levels */}
@@ -96,11 +100,13 @@ export default function FundCard({ fund }) {
               {[
                 ["SMA 20", fund.sma20?.toFixed(2)],
                 ["SMA 50", fund.sma50?.toFixed(2)],
-                ["SMA 200", fund.sma200?.toFixed(2)],
-                ["RSI (14)", fund.rsi],
-                ["MACD", fund.macd],
+                [`SMA ${fund.smaLongN ?? 200}`, fund.smaLong?.toFixed(2)],
+                ["RSI (14)", fund.rsi ?? "—"],
+                ["MACD", fund.macd ?? "—"],
+                ["MACD Hist", fund.macdHist ?? "—"],
                 ["20D High", fund.high20?.toFixed(2)],
                 ["20D Low", fund.low20?.toFixed(2)],
+                ["Volatility (10D ann.)", fund.volatility != null ? `${fund.volatility}%` : "—"],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                   <span style={{ fontSize: 10, color: "#475569", fontFamily: "monospace" }}>{k}</span>

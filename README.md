@@ -5,7 +5,7 @@ A live dashboard that tells you when to switch between TSP (Thrift Savings Plan)
 ## Features
 
 - **Live market data** via Alpha Vantage (ETF proxies for each TSP fund)
-- **5 signals per fund**: Moving Averages, RSI, MACD, Supply & Demand Zones, Volatility
+- **5 signals per fund**: Moving Averages, RSI (Wilder), MACD (12/26/9), Supply & Demand Zones, Volatility regime (10-day vs 60-day)
 - **Traffic light recommendations**: SWITCH IN / HOLD / SWITCH OUT
 - **AI analysis** powered by Claude — plain-English recommendation on what to do
 - **Fund ranking** — all 5 funds ranked by composite signal strength
@@ -19,7 +19,7 @@ A live dashboard that tells you when to switch between TSP (Thrift Savings Plan)
 | S Fund | Small/Mid Cap | IWM |
 | I Fund | International | EFA |
 | F Fund | Fixed Income | AGG |
-| G Fund | Gov't Securities | Synthetic (stable) |
+| G Fund | Gov't Securities | Synthetic (stable) — signals neutral by design |
 
 ---
 
@@ -67,11 +67,33 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+### Tests and lint
+
+```bash
+npm test        # indicator math and signal engine (node:test, no extra deps)
+npm run lint    # next/core-web-vitals
+```
+
+### How the composite score works
+
+Each signal scores −1, 0 or +1 (MACD scores ±0.7) and is weighted:
+
+| Signal | Weight | +1 when | −1 when |
+|--------|--------|---------|---------|
+| Moving averages | 0.30 | price > SMA20 > SMA50 | price < SMA20 < SMA50 |
+| RSI (14) | 0.20 | RSI < 35 (oversold) | RSI > 68 (overbought) |
+| MACD histogram | 0.20 | histogram > 0 | histogram < 0 |
+| Supply / demand | 0.15 | within 2% of 20-day low | within 2% of 20-day high |
+| Volatility regime | 0.15 | 10-day vol < 80% of 60-day vol | 10-day vol > 130% of 60-day vol |
+
+Composite above +0.25 shows **SWITCH IN**, below −0.25 shows **SWITCH OUT**, otherwise **HOLD**. The RSI and zone signals are contrarian, so a fund at fresh highs usually reads HOLD rather than SWITCH IN. Weights live in `lib/marketData.js` (`WEIGHTS`).
+
 ---
 
 ## API Rate Limits
 
 The free Alpha Vantage tier allows **25 requests/day**. This app:
+- Uses the free `TIME_SERIES_DAILY` endpoint (the adjusted series is premium-only)
 - Fetches 4 symbols (SPY, IWM, EFA, AGG) = 4 requests per page load
 - Caches results for 15 minutes server-side
 - Falls back to demo data if rate limited

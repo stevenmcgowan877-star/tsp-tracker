@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ResponsiveContainer, ComposedChart, LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { EPISODES } from "../lib/episodes";
 import { totalBalance, readStoredHoldings } from "../lib/holdings";
-import { readCoverage, writeCoverage, COVERAGE_OPTIONS, pctLabel } from "../lib/settings";
+import { readCoverage, COVERAGE_OPTIONS, pctLabel } from "../lib/settings";
 
 // Colours validated for the dark surface (#070d1a): see pages/backtest.js.
 const COLORS = { price: "#2563eb", sma: "#d97706", rule: "#16a34a", mix: "#d97706", inG: "rgba(148,163,184,0.18)" };
@@ -67,7 +67,8 @@ export default function Crises() {
 
   useEffect(() => { setHoldings(readStoredHoldings()); setCoverage(readCoverage()); }, []);
 
-  const changeCoverage = (c) => { setCoverage(c); writeCoverage(c); };
+  // Exploring a replay does not change the dashboard's setting.
+  const changeCoverage = (c) => setCoverage(c);
 
   const load = useCallback(async (episodeId, cov) => {
     const req = ++requestId.current;
@@ -157,7 +158,7 @@ export default function Crises() {
                 fontFamily: mono, fontSize: 10, letterSpacing: 1, padding: "4px 10px", borderRadius: 6, cursor: "pointer",
               }}>{pctLabel(c)}</button>
             ))}
-            <span style={{ fontSize: 10, color: "#475569" }}>of the balance at each flip; the rest stays in C</span>
+            <span style={{ fontSize: 10, color: "#475569" }}>of the balance at each flip; the rest stays in C. Starts at your dashboard setting.</span>
           </div>
 
           {error ? (

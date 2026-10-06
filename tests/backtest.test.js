@@ -163,3 +163,14 @@ test("the live record starts at the adoption date and is empty before it", () =>
   const cAt = (d) => s.C.find((p) => p.date === d).close;
   assert.ok(Math.abs(live.C.totalReturn - (cAt(r.end) / cAt("2026-10-06") - 1)) < 1e-9);
 });
+
+test("the live record does not depend on the selected range", () => {
+  const shift = (pts) => pts.map((p, i) => ({ ...p, date: new Date(Date.UTC(2025, 0, 1) + i * 86400000).toISOString().slice(0, 10) }));
+  const s = synthetic(1000);
+  for (const k of Object.keys(s)) s[k] = shift(s[k]);
+  const all = runBacktest(s, { lookback: 100, coverage: 0.75 });
+  const late = runBacktest(s, { lookback: 100, coverage: 0.75, start: "2027-01-01" });
+  assert.ok(late.start > "2026-10-06", "this range starts after adoption");
+  assert.deepEqual(late.liveRecord, all.liveRecord);
+  assert.equal(all.liveRecord.from, "2026-10-06");
+});

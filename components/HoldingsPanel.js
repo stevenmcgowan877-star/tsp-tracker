@@ -138,9 +138,11 @@ export default function HoldingsPanel({ trend, backtest, coverage }) {
               <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, lineHeight: 1.6 }}>
                 {ticket.blocked
                   ? `Both transfers for ${monthName(budget.month)} are used and this one buys C, so it has to wait until ${monthName(budget.month, 1)}. Until then, point new contributions at C with a contribution allocation, which is unlimited.`
-                  : ticket.intoGOnly
-                    ? `This only moves money into G, which the TSP allows even after both monthly transfers are used. `
-                    : `This uses one of your ${MONTHLY_TRANSFER_LIMIT} unrestricted transfers for the month (${budget.remaining} left). `}
+                  : ticket.partial
+                    ? `Both transfers for ${monthName(budget.month)} are used, so this version only moves money into G, which is still allowed. It keeps C at ${ticket.percents.C}% instead of the target ${ticket.targetC}%; top C up in ${monthName(budget.month, 1)}. `
+                    : budget.remaining === 0
+                      ? `Both transfers for ${monthName(budget.month)} are used, but this one only moves money into G, which is still allowed. `
+                      : `This counts as one of your ${MONTHLY_TRANSFER_LIMIT} transfers for ${monthName(budget.month)} (${budget.remaining - 1} left after it)${ticket.intoGOnly ? ". Once both are used, moves into G are still allowed but moves back into C are not" : ""}. `}
                 {!ticket.blocked && "Then set your contribution allocation to the same split; it is unlimited and does not count. Press “I made a transfer” once it is submitted."}
               </div>
             </div>

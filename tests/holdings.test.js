@@ -122,3 +122,23 @@ test("the transfer ticket gives whole percentages totalling 100 and the dollars 
   assert.deepEqual(transferTicket({ C: "25000", G: "75000" }, offTrend, 0.75), { needed: false });
   assert.equal(transferTicket({}, offTrend, 0.75), null);
 });
+
+test("the ticket keeps a move into G when rounding or a small C top-up would block it", async () => {
+  const { transferTicket } = await import("../lib/holdings.js");
+  const offTrend = { available: true, state: "OFF", hold: "G", price: 100, sellTrigger: 97, buyTrigger: 103 };
+  const exhausted = { remaining: 0 };
+  // C at 24.99%: rounding to 25% would add $10 to C.
+  const a = transferTicket({ C: "24990", S: "11010", G: "64000" }, offTrend, 0.75, exhausted);
+  assert.equal(a.percents.C, 24);
+  assert.equal(a.intoGOnly, true);
+  assert.equal(a.blocked, false);
+  // C at 22%, target 25%: the S-to-G part goes now, C waits.
+  const b = transferTicket({ C: "22000", S: "15000", G: "63000" }, offTrend, 0.75, exhausted);
+  assert.equal(b.partial, true);
+  assert.equal(b.blocked, false);
+  assert.deepEqual([b.percents.C, b.percents.G, b.percents.S], [22, 78, 0]);
+  assert.equal(b.targetC, 25);
+  // With transfers left, the full target is used.
+  const c = transferTicket({ C: "22000", S: "15000", G: "63000" }, offTrend, 0.75, { remaining: 1 });
+  assert.deepEqual([c.percents.C, c.partial], [25, false]);
+});

@@ -120,6 +120,10 @@ Composite above +0.25 reads BUY, below −0.25 reads SELL, otherwise MIXED. The 
 
 Eight episodes from the 2008 financial crisis to the spring 2026 dip, each replayed day by day: the C Fund against its 200-day average with the periods the rule held G shaded, growth of $10,000 under the rule and under holding C, every move with its date and price, and a plain-words account of when the rule stepped aside relative to the peak and when it returned relative to the low. If balances are stored in the holdings panel, the worst losses are shown in those dollars too. The replays are honest in both directions: 2008 shows the rule at its best (a 13% worst loss against 55%) and 2015-16 shows it whipsawed into a worse result than holding. Engine in `lib/crises.js`, episodes defined at the top of that file.
 
+### L Funds (`/lfunds`)
+
+Every Lifecycle fund from L Income to L 2075, compared with holding C, holding G and the trend rule over 1, 3, 5 or 10 years: annual return, worst drawdown, volatility and growth of $10,000, with a chart of any one L Fund against the three references. Funds younger than the window are reported from their first day and marked. The holdings panel accepts an L Fund balance as its own bucket, since the rule does not manage a fixed mix. Engine in `lib/lfunds.js`.
+
 ### Daily alert when the rule flips
 
 `vercel.json` schedules `/api/check-trend` every Tuesday to Saturday at 02:30 UTC (after TSP posts the previous day's prices). The check reads tsp.gov fresh and is stateless: it alerts while the rule's state began within the last two closes, so a flip whose price posted late is still caught, at the cost of a possible repeat the next day. Flips happen about once a year. Configure on Vercel:

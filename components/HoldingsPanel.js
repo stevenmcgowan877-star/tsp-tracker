@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HOLDING_FUNDS, assessHoldings } from "../lib/holdings";
 
 const mono = "'Space Mono', monospace";
-const FUND_COLORS = { C: "#00ff88", S: "#00cfff", I: "#a78bfa", F: "#fbbf24", G: "#94a3b8" };
+const FUND_COLORS = { C: "#00ff88", S: "#00cfff", I: "#a78bfa", F: "#fbbf24", G: "#94a3b8", L: "#f472b6" };
 const STORAGE_KEY = "tsp-tracker:holdings";
 const money = (x) => `${x < 0 ? "-" : ""}$${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
 
@@ -27,14 +27,14 @@ function writeStored(balances) {
 
 // Balances stay in this browser only (localStorage). Nothing is sent anywhere.
 export default function HoldingsPanel({ trend, backtest }) {
-  const [balances, setBalances] = useState({ C: "", S: "", I: "", F: "", G: "" });
+  const [balances, setBalances] = useState({ C: "", S: "", I: "", F: "", G: "", L: "" });
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const stored = readStored();
     if (stored) {
-      setBalances({ C: "", S: "", I: "", F: "", G: "", ...stored });
+      setBalances({ C: "", S: "", I: "", F: "", G: "", L: "", ...stored });
       setOpen(true);
     }
     setLoaded(true);
@@ -48,7 +48,7 @@ export default function HoldingsPanel({ trend, backtest }) {
     writeStored(next);
   };
   const clear = () => {
-    const empty = { C: "", S: "", I: "", F: "", G: "" };
+    const empty = { C: "", S: "", I: "", F: "", G: "", L: "" };
     setBalances(empty);
     try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   };
@@ -69,7 +69,7 @@ export default function HoldingsPanel({ trend, backtest }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, marginTop: 12 }}>
           {HOLDING_FUNDS.map((id) => (
             <label key={id} style={{ display: "block", minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 9, letterSpacing: 2, color: FUND_COLORS[id], marginBottom: 4 }}>{id} FUND $</span>
+              <span style={{ display: "block", fontSize: 9, letterSpacing: 2, color: FUND_COLORS[id], marginBottom: 4 }}>{id === "L" ? "L FUNDS $" : `${id} FUND $`}</span>
               <input
                 id={`holding-${id}`}
                 inputMode="decimal"

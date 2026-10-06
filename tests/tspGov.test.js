@@ -20,7 +20,7 @@ function sampleCsv(days = 40) {
 
 test("parseTspCsv returns the five funds oldest-first and trimmed", () => {
   const series = parseTspCsv(sampleCsv(200), 120);
-  assert.deepEqual(Object.keys(series).sort(), ["C", "F", "G", "I", "S"]);
+  assert.deepEqual(Object.keys(series).filter((k) => k !== "L").sort(), ["C", "F", "G", "I", "S"]);
   assert.equal(series.C.length, 120);
   assert.ok(series.C[0].date < series.C[119].date);
   assert.equal(series.C[119].date, "2026-10-05");

@@ -55,3 +55,12 @@ test("an unavailable rule yields no alignment verdict", () => {
   assert.equal(r.aligned, null);
   assert.equal(r.worstCase, undefined);
 });
+
+test("an L Fund bucket is called out rather than counted as C or G", () => {
+  const r = assessHoldings({ L: "90000", C: "10000" }, on, backtest);
+  assert.equal(r.aligned, false);
+  assert.match(r.message, /90% in an L Fund/);
+  assert.equal(r.lShare, 0.9);
+  const offSide = assessHoldings({ L: "100000" }, off, backtest);
+  assert.match(offSide.message, /keeps part of your money in equities/);
+});

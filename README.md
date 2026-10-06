@@ -83,6 +83,8 @@ npm run lint    # next/core-web-vitals
 
 ### The action rule
 
+The rule's parameters were fixed on 2026-10-06 (`RULE_ADOPTED` in `lib/trendRule.js`). Every result before that date is a backtest; results after it are a live record that could not have been tuned.
+
 The dashboard's one instruction comes from a slow trend filter on the C Fund (`lib/trendRule.js`):
 
 - Hold **C** while it closes more than 3% above its 200-day simple moving average.
@@ -124,9 +126,28 @@ Eight episodes from the 2008 financial crisis to the spring 2026 dip, each repla
 
 Every Lifecycle fund from L Income to L 2075, compared with holding C, holding G and the trend rule over 1, 3, 5 or 10 years: annual return, worst drawdown, volatility and growth of $10,000, with a chart of any one L Fund against the three references. Funds younger than the window are reported from their first day and marked. The holdings panel accepts an L Fund balance as its own bucket, since the rule does not manage a fixed mix. Engine in `lib/lfunds.js`.
 
-### Contribution planner (`/plan`)
+### How much of the balance the rule moves
 
-Enter a balance, a per-pay-period contribution and years to retirement (kept in the browser; the balance is prefilled from the holdings panel). The server builds 300 futures by block-bootstrapping the real daily returns of the C and G Funds (60-trading-day blocks, C and G sampled on the same dates), runs the trend rule on each starting from its real current state, adds contributions every ten trading days, and returns 10th to 90th percentile bands per year for the rule, holding C and holding G, plus the share of futures in which the rule ends ahead of C. Nominal dollars, no fees or raises. Short-block resampling breaks up multi-year trends, which works against a trend rule, so the rule's shortfall is a pessimistic bound; the drawdown comparison is the more reliable part. Engine in `lib/plan.js`; a 30-year run takes about a second and is cached per set of inputs.
+The research gap analysis found that every paid TSP service and the retirement literature favour a partial allocation over all-or-nothing switching (a 50/50 static and trend mix produced the best worst-case 30-year withdrawal rate in Early Retirement Now's 1871-2025 cohort study). The dashboard therefore lets you choose the share of the balance the rule governs; the rest stays in C through every flip. Default 75%. On the 2004-2026 replay:
+
+| Share the rule moves | Return a year | Worst loss |
+|---|---|---|
+| 100% | 10.1% | -19% |
+| 75% (default) | 10.4% | -20% |
+| 50% | 10.6% | -30% |
+| 25% | 10.8% | -43% |
+| 0% (hold C) | 11.1% | -55% |
+
+The choice is stored in the browser and used by the action card, the holdings check, the backtest page and the planner. The flip alert reads `RULE_COVERAGE` (0 to 1, default 1). New contributions can be pointed at the same split with a contribution election, which is unlimited and does not use up the two monthly transfers.
+
+### Retirement planner (`/plan`)
+
+Enter a balance, salary, contribution rate, age, years to retirement, years in retirement and a first-year withdrawal rate (all kept in the browser). The server builds 300 futures by block-bootstrapping the real daily C and G returns (jointly), runs the trend rule on your chosen share of the balance starting from its real current state, and models the TSP's own cash flows:
+
+- Working years: 26 deposits a year at your rate, capped at the 2026 elective limit ($24,500, plus $8,000 from age 50 or $11,250 at ages 60 to 63), with the FERS automatic 1% and a match on the first 5% that stops in any pay period after you hit the limit.
+- Retirement: the first-year withdrawal grows 2.5% a year, is never less than the required minimum distribution (age 73, or 75 if born 1960 or later, IRS Uniform Lifetime Table), and is taken pro rata from every fund held, as the TSP pays it.
+
+Results are 10th to 90th percentile bands per year, balance at retirement, the share of futures in which the money runs out, and the bad-case ending balance. History chunk length is selectable (3 months, 1 year default, 3 years): short chunks scramble the multi-year trends a trend rule relies on, longer ones reuse more of the same history. With 1-year or 3-year chunks the rule's bad-case retirement outcomes beat holding C even though its median balance at retirement is lower, which is the sequence-risk effect the literature describes. Salary and limits are held flat, dollars are nominal, no taxes or fees. Engine in `lib/plan.js`.
 
 ### Daily alert when the rule flips
 

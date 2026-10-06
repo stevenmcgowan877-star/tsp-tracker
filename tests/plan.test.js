@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { samplePaths, runPlan, PATHS, TRADING_DAYS } from "../lib/plan.js";
+import { runPlan, sampleBlockStarts, yearContributions, agencyRate, electiveLimit, rmdDivisor, rmdStartAge, PATHS, TRADING_DAYS, PAY_PERIOD } from "../lib/plan.js";
 import { trendStateAt } from "../lib/trendRule.js";
 
 // Synthetic history: C drifts up with noise (deterministic), G accrues 3%/yr.
@@ -18,49 +18,88 @@ function history(days = 2000) {
   return { C, G };
 }
 
-test("samplePaths is deterministic, joint, and sized to the horizon", () => {
-  const h = history();
-  const a = samplePaths(h, 2, { paths: 20, seed: 1 });
-  const b = samplePaths(h, 2, { paths: 20, seed: 1 });
-  assert.equal(a, b, "cached and identical for the same inputs");
-  assert.equal(a.c.length, 20);
-  assert.equal(a.c[0].length, 2 * TRADING_DAYS);
-  assert.equal(a.g[0].length, 2 * TRADING_DAYS);
-  // G returns are tiny and positive in the synthetic history; C returns vary.
-  assert.ok(a.g[0].every((r) => r > 0 && r < 0.001));
-  assert.ok(a.c[0].some((r) => r < 0));
+test("match follows the FERS formula and needs an employee deposit", () => {
+  assert.equal(agencyRate(0), 0.01);
+  assert.ok(Math.abs(agencyRate(0.03) - 0.04) < 1e-12);
+  assert.ok(Math.abs(agencyRate(0.05) - 0.05) < 1e-12);
+  assert.ok(Math.abs(agencyRate(0.10) - 0.05) < 1e-12, "match caps at 5% of pay");
 });
 
-test("runPlan returns percentile bands per year and sensible aggregates", () => {
-  const r = runPlan(history(), { balance: 100000, contribution: 500, years: 3 });
+test("2026 elective limits include the age-based catch-up", () => {
+  assert.equal(electiveLimit(40), 24500);
+  assert.equal(electiveLimit(55), 32500);
+  assert.equal(electiveLimit(61), 35750);
+  assert.equal(electiveLimit(65), 32500);
+});
+
+test("front-loading forfeits match once the limit is reached", () => {
+  // $200k salary at 20%: $1,538 per pay, limit $24,500 reached in pay 16.
+  const yr = yearContributions({ salary: 200000, pct: 0.2, age: 40 });
+  const employee = yr.reduce((a, c) => a + c.employee, 0);
+  const agency = yr.reduce((a, c) => a + c.agency, 0);
+  assert.ok(Math.abs(employee - 24500) < 1e-6);
+  assert.ok(agency < 200000 * 0.05 - 1, "some match forfeited");
+  assert.ok(agency >= 200000 * 0.01 - 1e-6, "the automatic 1% is never forfeited");
+  // At 5% the full 5% agency contribution arrives.
+  const even = yearContributions({ salary: 100000, pct: 0.05, age: 40 });
+  assert.ok(Math.abs(even.reduce((a, c) => a + c.agency, 0) - 5000) < 1e-6);
+});
+
+test("RMD start age and divisors follow SECURE 2.0 and the Uniform Lifetime Table", () => {
+  assert.equal(rmdStartAge(1955), 73);
+  assert.equal(rmdStartAge(1965), 75);
+  assert.equal(rmdDivisor(70), null);
+  assert.equal(rmdDivisor(75), 24.6);
+  assert.equal(rmdDivisor(104), 6.4);
+});
+
+test("block starts are deterministic and sized to the horizon", () => {
+  const a = sampleBlockStarts(5000, 2520, { paths: 10, block: 250 });
+  const b = sampleBlockStarts(5000, 2520, { paths: 10, block: 250 });
+  assert.deepEqual(a.map((x) => Array.from(x)), b.map((x) => Array.from(x)));
+  assert.equal(a[0].length, Math.ceil(2520 / 250));
+  assert.ok(a.every((s) => Array.from(s).every((i) => i >= 0 && i < 5000 - 250)));
+});
+
+test("legacy flat contributions still work and report percentile bands", () => {
+  const r = runPlan(history(), { balance: 100000, contribution: 500, years: 3, block: 60 });
   assert.equal(r.paths, PATHS);
   for (const key of ["trend", "C", "G"]) {
     const s = r.strategies[key];
     assert.equal(s.yearly.length, 4);
-    assert.equal(s.yearly[0].p50, 100000, "year 0 is the starting balance");
-    assert.ok(s.final.p10 <= s.final.p50 && s.final.p50 <= s.final.p90, "percentiles ordered");
-    assert.ok(s.worstDrawdown.p50 <= 0);
+    assert.equal(s.yearly[0].p50, 100000);
+    assert.ok(s.final.p10 <= s.final.p50 && s.final.p50 <= s.final.p90);
+    assert.equal(s.depletedShare, 0);
   }
-  // G never loses value, so its band is tight and its drawdown is zero.
   assert.equal(r.strategies.G.worstDrawdown.p10, 0);
-  assert.ok(r.strategies.G.final.p90 - r.strategies.G.final.p10 < 0.02 * r.strategies.G.final.p50);
-  assert.ok(r.strategies.G.final.p50 > 100000 + 500 * 70, "contributions plus interest");
-  assert.ok(r.ruleBeatsC >= 0 && r.ruleBeatsC <= 1);
-  assert.ok(r.ruleWithin20pctOfC >= r.ruleBeatsC);
-  assert.ok(["ON", "OFF"].includes(r.startState));
-  assert.equal(r.contributed, 500 * Math.floor((3 * TRADING_DAYS) / 10));
+  assert.ok(r.strategies.G.final.p50 > 100000 + 500 * 70);
+  assert.equal(r.contributed, 500 * Math.floor(TRADING_DAYS / PAY_PERIOD) * 3);
 });
 
-test("runPlan validates its inputs", () => {
-  assert.throws(() => runPlan(history(), { balance: -1, contribution: 0, years: 5 }), /required/);
-  assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 0 }), /required/);
-  assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 41 }), /required/);
+test("salary mode adds the employee deposit and the agency match", () => {
+  const r = runPlan(history(), { balance: 0, years: 2, salary: 100000, pct: 0.05, age: 40, paths: 20 });
+  assert.ok(Math.abs(r.employeeTotal - 10000) < 1e-6);
+  assert.ok(Math.abs(r.agencyTotal - 10000) < 1e-6);
+  // G grows slowly, so its median is just above the $20k deposited.
+  assert.ok(r.strategies.G.final.p50 > 20000 && r.strategies.G.final.p50 < 21500);
+});
+
+test("retirement withdrawals draw the balance down and can deplete it", () => {
+  const gentle = runPlan(history(), { balance: 500000, years: 1, retireYears: 10, withdrawalRate: 0.04, age: 64, paths: 30 });
+  assert.equal(gentle.retireYears, 10);
+  assert.equal(gentle.strategies.G.yearly.length, 12);
+  assert.equal(gentle.strategies.G.depletedShare, 0);
+  const brutal = runPlan(history(), { balance: 100000, years: 1, retireYears: 20, withdrawalRate: 0.2, age: 64, paths: 30 });
+  assert.equal(brutal.strategies.G.depletedShare, 1, "20% a year rising 2.5% empties G within 20 years");
+  assert.equal(brutal.strategies.G.final.p50, 0);
+});
+
+test("coverage 0 makes the rule strategy identical to holding C", () => {
+  const r = runPlan(history(), { balance: 100000, contribution: 200, years: 3, coverage: 0, paths: 20 });
+  assert.ok(Math.abs(r.strategies.trend.final.p50 - r.strategies.C.final.p50) < 1e-6);
 });
 
 test("the planner starts the rule in the state the full history implies, even inside the band", () => {
-  // A long rise (rule ON), then a drift down to about 2% below the average:
-  // still ON, because the exit needs a 3% break. A warm-window-only replay
-  // would call it OFF.
   const C = [], G = [];
   let c = 100;
   for (let i = 0; i < 900; i++) {
@@ -73,14 +112,13 @@ test("the planner starts the rule in the state the full history implies, even in
   const pctVsSma = closes[closes.length - 1] / sma - 1;
   assert.ok(pctVsSma < 0 && pctVsSma > -0.03, `expected inside the band, got ${pctVsSma}`);
   assert.equal(trendStateAt(closes, closes.length - 1), "ON");
-  const r = runPlan({ C, G }, { balance: 1000, contribution: 0, years: 1 });
+  const r = runPlan({ C, G }, { balance: 1000, contribution: 0, years: 1, paths: 5 });
   assert.equal(r.startState, "ON");
 });
 
-test("samplePaths resets its cache when the history changes and keeps few horizons", () => {
-  const h = history();
-  const a = samplePaths(h, 1, { paths: 5 });
-  const longer = { C: [...h.C, { date: "2030-01-01", close: h.C[h.C.length - 1].close }], G: [...h.G, { date: "2030-01-01", close: h.G[h.G.length - 1].close }] };
-  const b = samplePaths(longer, 1, { paths: 5 });
-  assert.notEqual(a, b, "a new trading day invalidates cached paths");
+test("runPlan validates its inputs", () => {
+  assert.throws(() => runPlan(history(), { balance: -1, contribution: 0, years: 5 }), /required/);
+  assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 0 }), /required/);
+  assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 41 }), /required/);
+  assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 5, retireYears: 41 }), /retireYears/);
 });

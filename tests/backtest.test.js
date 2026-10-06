@@ -46,7 +46,7 @@ test("runBacktest replays both strategies with consistent curves and stats", () 
   assert.ok(r.benchmarks.C.final > START_VALUE, "C trends up in the synthetic data");
   assert.equal(r.benchmarks.G.maxDrawdown, 0, "G never draws down");
   assert.ok(r.curve.every((p) => ["G", "C", "S", "I", "F"].includes(p.held)));
-  assert.deepEqual(r.trendRule, { n: 200, band: 0.03 });
+  assert.deepEqual(r.trendRule, { n: 200, band: 0.03, adopted: "2026-10-06" });
 });
 
 test("the trend strategy only ever holds C or G and rides the C uptrend", () => {

@@ -300,7 +300,7 @@ export default function Backtest() {
                 Five-signal score: each day the funds are scored exactly as the dashboard scores them using the trailing {result.lookback} closes; move into the top-ranked fund when it reads BUY, to G when the held fund reads SELL.
                 A shorter range starts the trend rule in whatever state it was actually in on that date; the five-signal score starts in G.
                 Both act at the close after the signal and obey the TSP limit of two unrestricted interfund transfers per calendar month (further moves only into G).
-                Benchmarks reinvest nothing and pay no costs; neither do the rules. Past performance of a rule set does not predict its future, and this page is not financial advice.
+                The rule&apos;s parameters were fixed on {result.trendRule.adopted || "2026-10-06"}; every result before that date is a backtest, and only results after it are a live record. Benchmarks reinvest nothing and pay no costs; neither do the rules. Past performance of a rule set does not predict its future, and this page is not financial advice.
               </div>
             </div>
           )}

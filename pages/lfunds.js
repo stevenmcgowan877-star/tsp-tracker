@@ -218,7 +218,7 @@ export default function LFunds() {
               </div>
 
               <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.8, borderTop: "1px solid #0f172a", paddingTop: 14 }}>
-                L Funds are fixed mixes of the G, F, C, S and I Funds that shift toward G and F as their target year approaches, so a later-dated L Fund behaves like an equity fund and L Income like a bond-heavy one. The trend rule holds C alone or G alone, so it is not a like-for-like mix; the comparison shows what each approach returned and how far it fell on the same official prices. Funds marked in amber opened after the window began and are measured from their first day. Not financial advice.
+                L Funds are fixed mixes of the G, F, C, S and I Funds that shift toward G and F as their target year approaches, so a later-dated L Fund behaves like an equity fund and L Income like a bond-heavy one. The trend rule holds C alone or G alone, so it is not a like-for-like mix; the comparison shows what each approach returned and how far it fell on the same official prices. Funds marked in amber opened after the window began and are measured from their first day. The retired L 2010, L 2020 and L 2025 Funds no longer appear in the tsp.gov price file (L 2025 merged into L Income on June 27, 2025), so anyone who held one should compare against L Income. Not financial advice.
               </div>
             </div>
           )}

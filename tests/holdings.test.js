@@ -1,0 +1,57 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { totalBalance, allocation, assessHoldings } from "../lib/holdings.js";
+
+const on = { available: true, state: "ON", price: 125.447, sellTrigger: 112.69, buyTrigger: 119.67 };
+const off = { ...on, state: "OFF" };
+const backtest = { years: 22.5, strategies: { trend: { maxDrawdown: -0.194, cagr: 0.103 } }, benchmarks: { C: { maxDrawdown: -0.552, cagr: 0.112 } } };
+
+test("totals and allocation tolerate blanks and strings", () => {
+  assert.equal(totalBalance({ C: "1000", G: "", S: undefined }), 1000);
+  const a = allocation({ C: "750", G: "250" });
+  assert.equal(a.C, 0.75);
+  assert.equal(a.G, 0.25);
+  assert.equal(allocation({}).C, 0);
+});
+
+test("empty balances produce an empty assessment", () => {
+  assert.equal(assessHoldings({}, on, backtest).empty, true);
+});
+
+test("fully in C while the rule is ON is aligned, with a dollar cushion", () => {
+  const r = assessHoldings({ C: "100000" }, on, backtest);
+  assert.equal(r.aligned, true);
+  assert.match(r.message, /100% in C/);
+  const expectedPct = (125.447 - 112.69) / 125.447;
+  assert.ok(Math.abs(r.cushionPct - expectedPct) < 1e-12);
+  assert.ok(Math.abs(r.cushionDollars - 100000 * expectedPct) < 1e-6);
+  assert.ok(Math.abs(r.worstCase.rule + 19400) < 1e-6);
+  assert.ok(Math.abs(r.worstCase.holdC + 55200) < 1e-6);
+});
+
+test("sitting in G while the rule is ON is flagged", () => {
+  const r = assessHoldings({ C: "20000", G: "80000" }, on, backtest);
+  assert.equal(r.aligned, false);
+  assert.match(r.message, /20% in C and 80% in G/);
+});
+
+test("equities outside C are called out when the rule is ON", () => {
+  const r = assessHoldings({ C: "50000", S: "50000" }, on, backtest);
+  assert.equal(r.aligned, false);
+  assert.match(r.message, /100% in equities but only 50% in C/);
+});
+
+test("rule OFF wants G and reports no cushion", () => {
+  const safe = assessHoldings({ G: "100000" }, off, backtest);
+  assert.equal(safe.aligned, true);
+  assert.equal(safe.cushionDollars, null);
+  const exposed = assessHoldings({ C: "60000", G: "40000" }, off, backtest);
+  assert.equal(exposed.aligned, false);
+  assert.match(exposed.message, /be in G; you hold 60% in equities/);
+});
+
+test("an unavailable rule yields no alignment verdict", () => {
+  const r = assessHoldings({ C: "1" }, { available: false }, null);
+  assert.equal(r.aligned, null);
+  assert.equal(r.worstCase, undefined);
+});

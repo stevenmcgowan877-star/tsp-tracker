@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import FundCard from "../components/FundCard";
 import ActionCard from "../components/ActionCard";
+import HoldingsPanel from "../components/HoldingsPanel";
 
 function Recommendation({ funds }) {
   if (!funds.length) return null;
@@ -60,6 +61,7 @@ export default function Home() {
   const [isDemo, setIsDemo] = useState(false);
   const [isOfficial, setIsOfficial] = useState(false);
   const [trend, setTrend] = useState(null);
+  const [backtestSummary, setBacktestSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aiInsight, setAiInsight] = useState("");
@@ -84,6 +86,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Headline backtest numbers for the holdings panel; failure just hides them.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/backtest?summary=1")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled && j) setBacktestSummary(j); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const getAIInsight = async () => {
     if (!funds.length) return;
@@ -186,6 +198,7 @@ export default function Home() {
           ) : (
             <>
               <ActionCard trend={trend} />
+              <HoldingsPanel trend={trend} backtest={backtestSummary} />
               <Recommendation funds={funds} />
 
               {/* AI Insight */}

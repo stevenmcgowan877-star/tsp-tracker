@@ -98,6 +98,8 @@ Why this rule and not the five-signal score: replayed on official tsp.gov prices
 | Five-signal score, daily | 6.1% | −30% | 0.28 | ~500 |
 | Five-signal score retuned to trend weights | 4.7% | −27% | 0.15 | ~520 |
 
+The table replays June 2004 to October 2026 with every strategy starting flat in G. The `/backtest` page starts in March 2004 and begins the trend rule in whatever state it was actually in on the start date, so its headline numbers differ slightly (about 10.1% a year, 24 switches).
+
 Robustness checks: all 25 combinations of average length (100 to 300 days) and band (0 to 5%) landed between 8.3% and 10.4% CAGR with drawdowns of −17% to −23%; across 69 rolling five-year windows the rule had the shallower drawdown in 86% and the higher Sharpe in 61%; in 300 block-bootstrapped 20-year histories its drawdown was shallower in 91% of paths at a median cost of about three points of CAGR. Rotating into S or I by momentum added drawdown without return; parking in F instead of G added return but deepened the 2022 loss; executing three closes late doubled the worst drawdown. The rule lags in strong bull markets and gets whipsawed by V-shaped crashes such as 2020. It is insurance against 2008-style losses, not a return booster. `/backtest` replays it and the five-signal score side by side.
 
 ### How the five-signal score works (context only)

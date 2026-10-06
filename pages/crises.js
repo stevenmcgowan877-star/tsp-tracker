@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
+import ShareMeta from "../components/ShareMeta";
 import Link from "next/link";
 import { ResponsiveContainer, ComposedChart, LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { EPISODES } from "../lib/crises";
@@ -111,6 +112,7 @@ export default function Crises() {
         <meta name="description" content="What the 200-day trend rule did through each market crisis since 2007, day by day, on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <ShareMeta title="Crisis Replays · TSP Fund Signal Tracker" description="What the 200-day trend rule did through each market crisis since 2007, day by day." path="/crises" />
       </Head>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

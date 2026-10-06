@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
+import ShareMeta from "../components/ShareMeta";
 import Link from "next/link";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
@@ -98,6 +99,7 @@ export default function LFunds() {
         <meta name="description" content="Every TSP Lifecycle fund compared with the C Fund, the G Fund and the trend rule on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <ShareMeta title="L Fund Lens · TSP Fund Signal Tracker" description="Every TSP Lifecycle fund compared with the C Fund, the G Fund and the trend rule." path="/lfunds" />
       </Head>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

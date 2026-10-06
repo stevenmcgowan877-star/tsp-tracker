@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
+import ShareMeta from "../components/ShareMeta";
 import Link from "next/link";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
@@ -147,6 +148,7 @@ export default function Backtest() {
         <meta name="description" content="How the trend rule and the five-signal score would have performed against holding the C Fund, on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <ShareMeta title="Rule Backtest · TSP Fund Signal Tracker" description="The trend rule and the five-signal score replayed over 22 years of official tsp.gov prices against holding the C Fund." path="/backtest" />
       </Head>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

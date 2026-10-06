@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
+import ShareMeta from "../components/ShareMeta";
 import Link from "next/link";
 import FundCard from "../components/FundCard";
 import ActionCard from "../components/ActionCard";
@@ -116,9 +117,10 @@ export default function Home() {
     <>
       <Head>
         <title>TSP Fund Signal Tracker</title>
-        <meta name="description" content="Live technical signals to help you decide when to switch TSP funds" />
+        <meta name="description" content="One evidence-backed action rule for your TSP allocation, on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <ShareMeta title="TSP Fund Signal Tracker" description="One evidence-backed action rule for your TSP allocation, on official tsp.gov prices." path="/" />
       </Head>
 
       <style>{`

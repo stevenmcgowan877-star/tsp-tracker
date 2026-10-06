@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { HOLDING_FUNDS, HOLDINGS_STORAGE_KEY, assessHoldings, readStoredHoldings } from "../lib/holdings";
+import { HOLDING_FUNDS, HOLDINGS_STORAGE_KEY, assessHoldings, readStoredHoldings, readTransfers, writeTransfers, processingDate, transfersThisMonth, MONTHLY_TRANSFER_LIMIT } from "../lib/holdings";
 
 const mono = "'Space Mono', monospace";
 const FUND_COLORS = { C: "#00ff88", S: "#00cfff", I: "#a78bfa", F: "#fbbf24", G: "#94a3b8", L: "#f472b6" };
@@ -19,6 +19,11 @@ export default function HoldingsPanel({ trend, backtest, coverage }) {
   const [balances, setBalances] = useState({ C: "", S: "", I: "", F: "", G: "", L: "" });
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [transfers, setTransfers] = useState([]);
+  useEffect(() => { setTransfers(readTransfers()); }, []);
+  const budget = transfersThisMonth(transfers);
+  const logTransfer = () => { const next = [...transfers, processingDate()]; setTransfers(next); writeTransfers(next); };
+  const undoTransfer = () => { const next = transfers.slice(0, -1); setTransfers(next); writeTransfers(next); };
 
   useEffect(() => {
     const stored = readStoredHoldings();
@@ -77,6 +82,17 @@ export default function HoldingsPanel({ trend, backtest, coverage }) {
           </div>
         </div>
       )}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 12, fontSize: 11, color: "#64748b" }}>
+        <span style={{ fontSize: 9, letterSpacing: 2, color: "#475569" }}>TRANSFERS {budget.month}</span>
+        <span style={{ fontFamily: mono, color: budget.remaining > 0 ? "#e2e8f0" : "#fbbf24" }}>
+          {budget.used} of {MONTHLY_TRANSFER_LIMIT} used{budget.remaining === 0 ? " · only moves into G allowed until next month" : ""}
+        </span>
+        <button onClick={logTransfer} style={{ background: "transparent", border: "1px solid #1e293b", color: "#64748b", fontFamily: mono, fontSize: 10, letterSpacing: 1, padding: "4px 10px", borderRadius: 6, cursor: "pointer" }}>I MADE A TRANSFER</button>
+        {transfers.length > 0 && (
+          <button onClick={undoTransfer} style={{ background: "transparent", border: "none", color: "#475569", fontFamily: mono, fontSize: 10, cursor: "pointer", textDecoration: "underline" }}>undo</button>
+        )}
+      </div>
 
       {!assessment.empty && (
         <div style={{ marginTop: 14 }}>

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { totalBalance, allocation, assessHoldings } from "../lib/holdings.js";
+import { totalBalance, allocation, assessHoldings, processingDate, transfersThisMonth } from "../lib/holdings.js";
 
 const on = { available: true, state: "ON", price: 125.447, sellTrigger: 112.69, buyTrigger: 119.67 };
 const off = { ...on, state: "OFF" };
@@ -72,4 +72,22 @@ test("rule OFF with partial coverage wants the G share, not everything", () => {
   const wrong = assessHoldings({ C: "100000" }, off, backtest, 0.75);
   assert.equal(wrong.aligned, false);
   assert.match(wrong.message, /75% in G and 25% in C/);
+});
+
+test("a transfer requested before noon ET counts that day; after noon or at the weekend it rolls forward", () => {
+  // 2026-07-31 is a Friday. 11:00 ET = 15:00 UTC (EDT).
+  assert.equal(processingDate(new Date("2026-07-31T15:00:00Z")), "2026-07-31");
+  // 12:15 ET on July 31 counts against August (TSP Bulletin 08-4's own example).
+  assert.equal(processingDate(new Date("2026-07-31T16:15:00Z")), "2026-08-03");
+  // Saturday rolls to Monday.
+  assert.equal(processingDate(new Date("2026-08-01T14:00:00Z")), "2026-08-03");
+});
+
+test("the monthly budget counts transfers by processing month", () => {
+  const now = new Date("2026-08-10T14:00:00Z");
+  const b = transfersThisMonth(["2026-07-31", "2026-08-03", "2026-08-05"], now);
+  assert.equal(b.month, "2026-08");
+  assert.equal(b.used, 2);
+  assert.equal(b.remaining, 0);
+  assert.equal(transfersThisMonth([], now).remaining, 2);
 });

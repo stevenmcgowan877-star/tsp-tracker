@@ -4,14 +4,17 @@ A live dashboard that tells you when to switch between TSP (Thrift Savings Plan)
 
 ## Features
 
-- **Live market data** via Alpha Vantage (ETF proxies for each TSP fund)
+- **Official TSP share prices** from tsp.gov (all five funds, including the G Fund), with Alpha Vantage ETF proxies as fallback
 - **5 signals per fund**: Moving Averages, RSI (Wilder), MACD (12/26/9), Supply & Demand Zones, Volatility regime (10-day vs 60-day)
 - **Traffic light recommendations**: SWITCH IN / HOLD / SWITCH OUT
 - **AI analysis** powered by Claude — plain-English recommendation on what to do
 - **Fund ranking** — all 5 funds ranked by composite signal strength
 - Auto-caches data for 15 minutes to stay within free API limits
 
-## TSP Fund Proxies
+## Data sources
+
+1. **tsp.gov** (default): the official daily share-price CSV at `https://www.tsp.gov/data/fund-price-history.csv`. One request returns the full history for every fund; the app keeps the last 120 trading days and caches for 6 hours. No API key needed.
+2. **Alpha Vantage ETF proxies** (fallback, or set `TSP_DATA_SOURCE=proxy` to force):
 
 | TSP Fund | Tracks | Proxy ETF |
 |----------|--------|-----------|
@@ -19,7 +22,9 @@ A live dashboard that tells you when to switch between TSP (Thrift Savings Plan)
 | S Fund | Small/Mid Cap | IWM |
 | I Fund | International | EFA |
 | F Fund | Fixed Income | AGG |
-| G Fund | Gov't Securities | Synthetic (stable) — signals neutral by design |
+| G Fund | Gov't Securities | Synthetic (stable) |
+
+The G Fund accrues interest daily and never trades, so its technical signals are neutralised (always HOLD) whichever source is in use.
 
 ---
 
@@ -43,7 +48,7 @@ git push -u origin main
 1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
 2. Click **"Add New Project"**
 3. Import your `tsp-tracker` repository
-4. Under **Environment Variables**, add:
+4. Under **Environment Variables**, add (optional, only needed for the proxy fallback):
    - `ALPHA_VANTAGE_API_KEY` = your key from Step 1
 5. Click **Deploy** — done!
 
@@ -104,4 +109,4 @@ For unlimited requests, upgrade to Alpha Vantage's paid tier or swap in Polygon.
 
 ## ⚠️ Disclaimer
 
-This tool is for **educational purposes only** and is not financial advice. TSP fund prices are based on ETF proxies, not official TSP share prices. Always consult [tsp.gov](https://tsp.gov) for official fund information before making allocation changes.
+This tool is for **educational purposes only** and is not financial advice. Prices come from tsp.gov when reachable and from ETF proxies otherwise; the page footer says which. Always consult [tsp.gov](https://tsp.gov) for official fund information before making allocation changes.

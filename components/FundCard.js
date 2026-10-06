@@ -60,11 +60,13 @@ export default function FundCard({ fund }) {
             {fund.source === "demo" && (
               <span style={{ fontSize: 9, color: "#fbbf24", background: "#fbbf2415", border: "1px solid #fbbf2430", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", letterSpacing: 1 }}>DEMO</span>
             )}
-            {fund.source === "synthetic" && (
-              <span title="No ETF tracks the G Fund; signals are neutral by design" style={{ fontSize: 9, color: "#94a3b8", background: "#94a3b815", border: "1px solid #94a3b830", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", letterSpacing: 1 }}>NO PROXY</span>
+            {fund.id === "G" && (
+              <span title="The G Fund accrues interest daily and never trades, so technical signals are neutral by design" style={{ fontSize: 9, color: "#94a3b8", background: "#94a3b815", border: "1px solid #94a3b830", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", letterSpacing: 1 }}>NO SIGNALS</span>
             )}
           </div>
-          <div style={{ color: "#334155", fontSize: 11, fontStyle: "italic", marginTop: 2 }}>{fund.desc} · via {fund.proxy}</div>
+          <div style={{ color: "#334155", fontSize: 11, fontStyle: "italic", marginTop: 2 }}>
+            {fund.desc} · {fund.source === "tsp" ? "official tsp.gov share price" : `via ${fund.proxy}`}
+          </div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontFamily: "monospace", fontSize: 18, color: "#e2e8f0" }}>${fund.current?.toFixed(2)}</div>

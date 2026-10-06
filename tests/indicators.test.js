@@ -128,6 +128,12 @@ test("synthetic (G Fund) data is neutralised to HOLD", () => {
   const s = computeSignals(toPriceData(ramp(100, 17.5, 0.001), "synthetic"));
   assert.equal(s.signal, "HOLD");
   assert.equal(s.composite, 0);
+});
+
+test("a series flagged neutral (official G Fund prices) is neutralised to HOLD", () => {
+  const s = computeSignals({ ...toPriceData(ramp(100, 20.0, 0.001), "tsp"), neutral: true });
+  assert.equal(s.signal, "HOLD");
+  assert.equal(s.composite, 0);
   assert.equal(s.inSupplyZone, false);
   assert.equal(s.rsiScore, 0);
   assert.equal(s.rsi, null);

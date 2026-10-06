@@ -56,6 +56,7 @@ export default function Home() {
   const [funds, setFunds] = useState([]);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [isDemo, setIsDemo] = useState(false);
+  const [isOfficial, setIsOfficial] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aiInsight, setAiInsight] = useState("");
@@ -71,6 +72,7 @@ export default function Home() {
       setFunds(json.funds);
       setUpdatedAt(json.updatedAt);
       setIsDemo(json.isDemo);
+      setIsOfficial(Boolean(json.isOfficial));
     } catch (e) {
       setError(e.message);
     }
@@ -138,7 +140,7 @@ export default function Home() {
                   FUND SIGNAL <span style={{ color: "#00ff88" }}>TRACKER</span>
                 </h1>
                 <p style={{ fontSize: 11, color: "#334155", fontStyle: "italic", marginTop: 4 }}>
-                  Moving Averages · RSI · MACD · Supply & Demand Zones · Volatility · Live Proxy Data
+                  Moving Averages · RSI · MACD · Supply & Demand Zones · Volatility · {isOfficial ? "Official TSP Prices" : "Live Proxy Data"}
                 </p>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -207,7 +209,9 @@ export default function Home() {
 
               <div style={{ marginTop: 28, paddingTop: 16, borderTop: "1px solid #0f172a", fontSize: 10, color: "#1e293b", textAlign: "center", lineHeight: 1.8 }}>
                 FOR EDUCATIONAL PURPOSES ONLY · NOT FINANCIAL ADVICE<br />
-                TSP FUND SIGNALS DERIVED FROM ETF PROXIES (SPY, IWM, EFA, AGG) · CONSULT TSP.GOV FOR OFFICIAL SHARE PRICES
+                {isOfficial
+                  ? "PRICES ARE OFFICIAL TSP SHARE PRICES FROM TSP.GOV, UPDATED ONCE PER TRADING DAY"
+                  : "TSP FUND SIGNALS DERIVED FROM ETF PROXIES (SPY, IWM, EFA, AGG) · CONSULT TSP.GOV FOR OFFICIAL SHARE PRICES"}
               </div>
             </>
           )}

@@ -1,4 +1,4 @@
-import { FUNDS, fetchDailyPrices, computeSignals } from "../../lib/marketData";
+import { FUNDS, fetchFundPrices, computeSignals } from "../../lib/marketData";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   try {
     const results = await Promise.all(
       FUNDS.map(async (fund) => {
-        const priceData = await fetchDailyPrices(fund.proxy);
+        const priceData = await fetchFundPrices(fund);
         const signals = computeSignals(priceData);
         return { ...fund, ...signals };
       })
@@ -20,6 +20,7 @@ export default async function handler(req, res) {
       funds: results,
       updatedAt: new Date().toISOString(),
       isDemo: results.some((f) => f.source === "demo"),
+      isOfficial: results.every((f) => f.source === "tsp"),
     });
   } catch (err) {
     console.error("API error:", err);

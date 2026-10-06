@@ -58,3 +58,18 @@ test("a flip to G with partial coverage asks for that share only", () => {
   assert.match(toG.text, /75% into G and leave 25% in C/);
   assert.match(toG.text, /contribution election/);
 });
+
+test("ntfy topics get a plain-text push with the title in a header", async () => {
+  const { isNtfy } = await import("../lib/alerts.js");
+  assert.equal(isNtfy("https://ntfy.sh/my-tsp-topic"), true);
+  assert.equal(isNtfy("https://hooks.slack.com/services/x"), false);
+  assert.equal(isNtfy("https://push.example.org/tsp", "ntfy"), true, "self-hosted via the format setting");
+  assert.equal(isNtfy("not a url"), false);
+  const alert = buildAlert({ ...base, state: "OFF", hold: "G", since: "2026-10-05", barsSinceFlip: 0, price: 112.0, pctVsSma: -3.6 }, { coverage: 0.75 });
+  let seen;
+  await postWebhook("https://ntfy.sh/my-tsp-topic", alert, base, async (url, opts) => { seen = { url, ...opts }; return { ok: true, status: 200 }; });
+  assert.equal(seen.body, alert.text);
+  assert.equal(seen.headers.Title, alert.title);
+  assert.equal(seen.headers.Priority, "high");
+  assert.ok(/^[\x20-\x7e]*$/.test(seen.headers.Title), "header values stay ASCII");
+});

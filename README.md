@@ -191,13 +191,15 @@ With 3-month chunks, which scramble multi-year trends, the rule is simply worse.
 
 ### Daily alert when the rule flips
 
-`vercel.json` schedules `/api/check-trend` every Tuesday to Saturday at 02:30 UTC (after TSP posts the previous day's prices). The check reads tsp.gov fresh and is stateless: it alerts while the rule's state began within the last two closes, so a flip whose price posted late is still caught, at the cost of a possible repeat the next day. Flips happen about once a year. Configure on Vercel:
+`vercel.json` schedules `/api/check-trend` every Tuesday to Saturday at 02:30 UTC (after TSP posts the previous day's prices). The check reads tsp.gov fresh and is stateless: it alerts while the rule's state began within the last two closes, so a flip whose price posted late is still caught, at the cost of a possible repeat the next day. Flips happen about once a year. ntfy topics are public to anyone who guesses the name, so use a long random one; the alert says only what the rule says, never your balances. Configure on Vercel:
 
 | Variable | Purpose |
 |---|---|
-| `ALERT_WEBHOOK_URL` | Where to POST. The JSON body carries `text` (Slack), `content` (Discord) and structured fields, so a Slack or Discord incoming webhook, or a Zapier/IFTTT/Make catch hook that forwards to email or SMS, all work unchanged. |
+| `ALERT_WEBHOOK_URL` | Where to POST. The simplest is an [ntfy](https://ntfy.sh) topic such as `https://ntfy.sh/your-long-random-topic`: install the free ntfy app, subscribe to the same topic, and flips arrive as phone push notifications with no account. Anything else gets a JSON body carrying `text` (Slack), `content` (Discord) and structured fields, so a Slack or Discord incoming webhook, or a Zapier/IFTTT/Make catch hook that forwards to email or SMS, all work unchanged. |
+| `ALERT_WEBHOOK_FORMAT` | Optional. `ntfy` for a self-hosted ntfy server on another domain. |
+| `RULE_COVERAGE` | The share your alert tells you to move (default 75%, matching the dashboard). |
 | `ALERT_ON_NEAR_TRIGGER` | Set to `1` to also get a heads-up when the close is within 1.5% of a trigger. |
-| `CRON_SECRET` | Optional. Vercel sends it as a Bearer token on cron calls; the endpoint then rejects callers without that header. |
+| `CRON_SECRET` | Strongly recommended: any long random string. Vercel sends it as a Bearer token on cron calls and the endpoint rejects callers without it. Without it anyone who finds the URL can re-send your alert, and the response includes a warning saying so. |
 
 Test the wiring with a dry run, which returns the evaluation and the message it would send without sending it:
 

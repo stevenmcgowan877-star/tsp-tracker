@@ -41,11 +41,13 @@ export default async function handler(req, res) {
   let delivery = "none";
   if (alert && webhook && !dry) {
     try {
-      await postWebhook(webhook, alert, trend);
+      await postWebhook(webhook, alert, trend, fetch, { format: process.env.ALERT_WEBHOOK_FORMAT });
       delivery = "sent";
     } catch (err) {
       console.error("check-trend: webhook failed", err.message);
-      delivery = `failed: ${err.message}`;
+      // Only the HTTP status goes back to the caller; other errors (such as a
+      // malformed URL) can quote the webhook address, so they stay in the log.
+      delivery = /^Webhook returned HTTP \d+$/.test(err.message) ? `failed: ${err.message}` : "failed: could not reach ALERT_WEBHOOK_URL (details in the server log)";
     }
   } else if (alert && !webhook) {
     delivery = "no ALERT_WEBHOOK_URL configured";
@@ -54,5 +56,6 @@ export default async function handler(req, res) {
   }
 
   res.setHeader("Cache-Control", "no-store");
-  return res.status(200).json({ checkedAt: new Date().toISOString(), trend, alert, delivery });
+  const warning = process.env.CRON_SECRET ? undefined : "CRON_SECRET is not set, so anyone can trigger this check and re-send an alert. Set it on Vercel.";
+  return res.status(200).json({ checkedAt: new Date().toISOString(), trend, alert, delivery, warning });
 }

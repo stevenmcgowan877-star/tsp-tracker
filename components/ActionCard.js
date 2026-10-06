@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { COVERAGE_OPTIONS, targetAllocation, pctLabel } from "../lib/settings";
+import { missedCloses } from "../lib/trendRule";
 
 const mono = "'Space Mono', monospace";
 
@@ -20,6 +21,8 @@ export default function ActionCard({ trend, coverage = 1, onCoverage, hybrid, si
   }
 
   const on = trend.state === "ON";
+  // Rendered only after the client fetch, so the clock read is safe here.
+  const missed = missedCloses(trend.asOf);
   const target = targetAllocation(trend.state, coverage);
   const headline = on ? "BE IN C" : target.C > 0 ? `${pctLabel(target.G)} G · ${pctLabel(target.C)} C` : "BE IN G";
   const color = on ? "#00ff88" : "#94a3b8";
@@ -37,6 +40,11 @@ export default function ActionCard({ trend, coverage = 1, onCoverage, hybrid, si
     }}>
       <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: `radial-gradient(circle, ${on ? "rgba(0,255,136,0.08)" : "rgba(148,163,184,0.06)"} 0%, transparent 70%)`, pointerEvents: "none" }} />
       <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 12 }}>◈ ACTION RULE · {trend.n}-DAY TREND ON THE C FUND · AS OF {trend.asOf}</div>
+      {missed >= 2 && (
+        <div role="alert" style={{ fontSize: 11, color: "#fbbf24", border: "1px solid rgba(251,191,36,0.35)", background: "rgba(251,191,36,0.06)", borderRadius: 6, padding: "6px 10px", marginBottom: 12, lineHeight: 1.5 }}>
+          The latest tsp.gov price is from {trend.asOf}, {missed} business days ago. tsp.gov may be late or down; check its share prices before acting on this.
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

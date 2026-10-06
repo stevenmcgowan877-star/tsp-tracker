@@ -70,3 +70,14 @@ test("trendStateAt agrees with evaluateTrendRule at every index", () => {
     assert.equal(trendStateAt(closes, t), viaEval, `index ${t}`);
   }
 });
+
+test("missedCloses counts weekdays between the last close and today in Eastern time", async () => {
+  const { missedCloses } = await import("../lib/trendRule.js");
+  const at = (iso) => new Date(iso);
+  assert.equal(missedCloses("2026-10-05", at("2026-10-06T15:00:00Z")), 0, "Monday close, Tuesday");
+  assert.equal(missedCloses("2026-10-02", at("2026-10-05T15:00:00Z")), 0, "Friday close, Monday");
+  assert.equal(missedCloses("2026-10-01", at("2026-10-05T15:00:00Z")), 1, "a Friday holiday is one");
+  assert.equal(missedCloses("2026-09-29", at("2026-10-05T15:00:00Z")), 3);
+  assert.equal(missedCloses("2026-10-05", at("2026-10-07T02:00:00Z")), 0, "10pm ET Tuesday is still Tuesday");
+  assert.equal(missedCloses(null), 0);
+});

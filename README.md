@@ -17,7 +17,7 @@ A live dashboard for TSP (Thrift Savings Plan) allocation: one evidence-backed a
 
 ## Data sources
 
-1. **tsp.gov** (default): the official daily share-price CSV at `https://www.tsp.gov/data/fund-price-history.csv`. One request returns the full history for every fund; the app keeps the last 120 trading days and caches for 6 hours. No API key needed.
+1. **tsp.gov** (default): the official daily share-price CSV at `https://www.tsp.gov/data/fund-price-history.csv`. One request returns the full history for every fund; the app keeps the last 120 trading days and caches for 6 hours. If tsp.gov is down, pages keep using the last good copy for up to a week (the daily flip check does not, so it never re-sends an old flip), and the action card warns when the latest price is two or more business days old. No API key needed.
 2. **Alpha Vantage ETF proxies** (fallback, or set `TSP_DATA_SOURCE=proxy` to force):
 
 | TSP Fund | Tracks | Proxy ETF |

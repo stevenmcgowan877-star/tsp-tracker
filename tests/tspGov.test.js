@@ -81,3 +81,17 @@ test("concurrent callers share one download and fresh=true bypasses the cache", 
   await fetchTspPrices({ fetchImpl, now: 2, fresh: true });
   assert.equal(calls, 2);
 });
+
+test("an outage serves the last good copy for up to a week, then gives up", async () => {
+  _resetTspCache();
+  const good = async () => ({ ok: true, status: 200, text: async () => sampleCsv(50) });
+  const down = async () => ({ ok: false, status: 503, text: async () => "" });
+  const day = 24 * 60 * 60 * 1000;
+  const first = await fetchTspPrices({ fetchImpl: good, now: 0 });
+  // Cache expired (6 hours) and tsp.gov is down: the old copy is served.
+  assert.equal(await fetchTspPrices({ fetchImpl: down, now: day }), first);
+  // The daily check's fresh read does not, so it cannot re-send an old flip.
+  assert.equal(await fetchTspPrices({ fetchImpl: down, now: day, fresh: true }), null);
+  // After a week the copy is too old to trust.
+  assert.equal(await fetchTspPrices({ fetchImpl: down, now: 8 * day }), null);
+});

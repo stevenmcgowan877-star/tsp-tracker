@@ -87,7 +87,7 @@ export default function ActionCard({ trend, coverage = 1, onCoverage, hybrid, si
       )}
 
       <div style={{ marginTop: 12, fontSize: 10, color: "#475569", lineHeight: 1.7 }}>
-        Checked on every close, acted on at the next close: a TSP interfund transfer requested before noon ET settles that day. A ±{bandPct}% band around the average avoids whipsaw; this rule switched {trend.flipCount} times since 2004. Moving less than all of it keeps part of your money in C through every flip, which research on retirement outcomes favours over all-or-nothing. Your contribution election for new money is unlimited and does not use up the two monthly transfers.{" "}
+        Checked on every close, acted on at the next close: a TSP interfund transfer requested before noon ET settles that day. A ±{bandPct}% band around the average avoids whipsaw; this rule switched {trend.switchCount ?? trend.flipCount} times since {trend.firstEvaluated ? trend.firstEvaluated.slice(0, 4) : "2004"}. Moving less than all of it keeps part of your money in C through every flip, which research on retirement outcomes favours over all-or-nothing. Your contribution election for new money is unlimited and does not use up the two monthly transfers.{" "}
         <Link href="/backtest" style={{ color: "#64748b" }}>See the 22-year replay →</Link>
       </div>
     </div>

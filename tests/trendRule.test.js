@@ -47,6 +47,8 @@ test("evaluateTrendRule flips OFF after a fall through the band and back ON on r
   const r2 = evaluateTrendRule(series([...up, ...down, ...recover]));
   assert.equal(r2.state, "ON");
   assert.equal(r2.flipCount, 3);
+  assert.ok(r2.switchCount === r2.flipCount || r2.switchCount === r2.flipCount - 1, "switchCount only drops a state-setting flip on the first evaluated close");
+  assert.equal(typeof r2.firstEvaluated, "string");
 });
 
 test("barsSinceFlip counts closes since the state began", () => {

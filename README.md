@@ -48,8 +48,9 @@ git push -u origin main
 1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
 2. Click **"Add New Project"**
 3. Import your `tsp-tracker` repository
-4. Under **Environment Variables**, add (optional, only needed for the proxy fallback):
-   - `ALPHA_VANTAGE_API_KEY` = your key from Step 1
+4. Under **Environment Variables**, add (both optional):
+   - `ALPHA_VANTAGE_API_KEY` = your key from Step 1 (only used if tsp.gov is unreachable)
+   - `ANTHROPIC_API_KEY` = enables the AI fund analysis button (uses Claude Haiku 4.5; the server builds the prompt from the same cached fund data the page shows)
 5. Click **Deploy** — done!
 
 Your site will be live at `https://tsp-tracker-YOURNAME.vercel.app`

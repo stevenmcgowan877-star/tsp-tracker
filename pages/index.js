@@ -85,17 +85,11 @@ export default function Home() {
     if (!funds.length) return;
     setLoadingAI(true);
     setAiInsight("");
-    const summary = funds.map(f =>
-      `${f.id} Fund (${f.desc}): Signal=${f.signal}, RSI=${f.rsi}, Composite=${(f.composite * 100).toFixed(0)}, ${f.inDemandZone ? "IN DEMAND ZONE" : f.inSupplyZone ? "IN SUPPLY ZONE" : "neutral zone"}`
-    ).join("\n");
     try {
-      const res = await fetch("/api/ai-insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary }),
-      });
+      // The server builds the fund summary from the same cached data the page shows.
+      const res = await fetch("/api/ai-insight", { method: "POST" });
       const data = await res.json();
-      setAiInsight(data.insight || "No insight returned.");
+      setAiInsight(data.insight || data.error || "No insight returned.");
     } catch {
       setAiInsight("Could not load AI insight.");
     }

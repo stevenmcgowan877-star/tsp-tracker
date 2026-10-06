@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { loadTrend } from "../../lib/dashboardData.js";
 import { buildAlert, postWebhook } from "../../lib/alerts.js";
+import { parseCoverage } from "../../lib/settings.js";
 
 // Daily check, meant to be hit by the Vercel cron in vercel.json after TSP
 // posts the day's share prices. Sends to ALERT_WEBHOOK_URL when the rule has
@@ -31,7 +32,8 @@ export default async function handler(req, res) {
 
   const alert = buildAlert(trend, {
     alertOnNear: process.env.ALERT_ON_NEAR_TRIGGER === "1",
-    coverage: process.env.RULE_COVERAGE ? Number(process.env.RULE_COVERAGE) : 1,
+    // Same default as the dashboard (75%); "0.5", "50" and "50%" all work.
+    coverage: parseCoverage(process.env.RULE_COVERAGE),
   });
   const dry = req.query.dry === "1";
   const webhook = process.env.ALERT_WEBHOOK_URL;

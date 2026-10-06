@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { runBacktest, alignSeries, START_VALUE } from "../lib/backtest.js";
+import { runBacktest, alignSeries, coverageCurve, START_VALUE } from "../lib/backtest.js";
 
 // Deterministic synthetic history: C trends up with a wobble, S trends down,
 // I and F sideways, G accrues steadily. 700 trading days.
@@ -121,16 +121,27 @@ test("the transfer count is kept by processing month, so a month-end signal uses
   assert.ok(sw.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.date)), "switch dates are execution dates");
 });
 
-test("coverage blends the rule with a static C sleeve", () => {
+test("coverage moves that share of the whole balance at each flip", () => {
   const full = runBacktest(synthetic(), { lookback: 100, coverage: 1 });
   const half = runBacktest(synthetic(), { lookback: 100, coverage: 0.5 });
   const none = runBacktest(synthetic(), { lookback: 100, coverage: 0 });
   assert.equal(full.coverage, 1);
   assert.ok(Math.abs(full.strategies.hybrid.final - full.strategies.trend.final) <= 1, "coverage 1 equals the pure rule");
   assert.ok(Math.abs(none.strategies.hybrid.final - none.benchmarks.C.final) <= 1, "coverage 0 equals holding C");
-  const mid = (full.strategies.trend.final + full.benchmarks.C.final) / 2;
-  assert.ok(Math.abs(half.strategies.hybrid.final - mid) <= 1, "coverage 0.5 is the midpoint of unrebalanced sleeves");
   assert.ok(half.strategies.hybrid.maxDrawdown >= Math.min(half.strategies.trend.maxDrawdown, half.benchmarks.C.maxDrawdown));
   assert.equal(half.curve[0].hybrid, START_VALUE);
   assert.equal(half.strategies.hybrid.switches, half.strategies.trend.switches);
+});
+
+test("coverageCurve rebalances to the advised split on each flip and drifts between", () => {
+  // Day returns: C +10%, -10%, +10%, +10%; G +1% each day.
+  const closes = { C: [100, 110, 99, 108.9, 119.79], G: [10, 10.1, 10.201, 10.30301, 10.4060401] };
+  // Start OFF (75% G), turn ON before day 3, OFF again before day 4.
+  const curve = coverageCurve(["G", "G", "C", "G"], "G", closes, 0, 0.75);
+  let c = 2500, g = 7500;
+  c *= 1.1; g *= 1.01; assert.ok(Math.abs(curve[1] - (c + g)) < 1e-9);
+  c *= 0.9; g *= 1.01; assert.ok(Math.abs(curve[2] - (c + g)) < 1e-9, "the split drifts while OFF");
+  c = c + g; g = 0; c *= 1.1; assert.ok(Math.abs(curve[3] - c) < 1e-9, "ON moves everything to C");
+  g = 0.75 * c; c = 0.25 * c; c *= 1.1; g *= 1.01;
+  assert.ok(Math.abs(curve[4] - (c + g)) < 1e-9, "OFF moves 75% of the whole balance to G");
 });

@@ -13,17 +13,28 @@ const money = (x) => `${x < 0 ? "-" : ""}$${Math.abs(Math.round(x)).toLocaleStri
 const short = (x) => (Math.abs(x) >= 1e6 ? `$${(x / 1e6).toFixed(1)}M` : `$${Math.round(x / 1000)}k`);
 const pct = (x, d = 0) => `${(x * 100).toFixed(d)}%`;
 const STORAGE_KEY = "tsp-tracker:plan:v2";
+const LEGACY_STORAGE_KEY = "tsp-tracker:plan";
 const BLOCKS = [
   { value: 60, label: "3 MONTHS" },
   { value: 250, label: "1 YEAR" },
   { value: 750, label: "3 YEARS" },
 ];
-const DEFAULTS = { balance: "", salary: "100000", pct: "5", age: "45", years: 20, retireYears: 30, withdrawalRate: "4", block: 250 };
+const DEFAULTS = { balance: "", salary: "100000", pct: "5", contribution: "", age: "45", years: 20, retireYears: 30, withdrawalRate: "4", block: 250 };
 
+// Saved inputs; the first planner stored { balance, contribution, years }
+// under the old key, which carries over as a flat per-pay-period amount.
 function readStored() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (raw) return JSON.parse(raw);
+    const old = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!old) return null;
+    const { balance, contribution, years } = JSON.parse(old) || {};
+    const out = {};
+    if (balance != null) out.balance = String(balance);
+    if (Number(contribution) > 0) { out.contribution = String(contribution); out.salary = ""; }
+    if (Number.isFinite(Number(years))) out.years = Math.max(1, Math.min(40, Math.round(Number(years))));
+    return out;
   } catch {
     return null;
   }
@@ -116,7 +127,7 @@ export default function Plan() {
     setLoading(true);
     setError(null);
     const q = new URLSearchParams({
-      balance: Number(inp.balance) || 0, salary: Number(inp.salary) || 0, pct: Number(inp.pct) || 0, age: Number(inp.age) || 0,
+      balance: Number(inp.balance) || 0, salary: Number(inp.salary) || 0, pct: Number(inp.pct) || 0, contribution: Number(inp.contribution) || 0, age: Number(inp.age) || 0,
       years: inp.years, retireYears: inp.retireYears, withdrawalRate: Number(inp.withdrawalRate) || 0, coverage: cov, block: inp.block,
     });
     try {
@@ -198,6 +209,7 @@ export default function Plan() {
               <Field id="plan-balance" label="BALANCE TODAY $" value={inputs.balance} onChange={setText("balance")} />
               <Field id="plan-salary" label="ANNUAL SALARY $" value={inputs.salary} onChange={setText("salary")} />
               <Field id="plan-pct" label="YOU CONTRIBUTE" value={inputs.pct} onChange={setText("pct")} suffix="% of pay" />
+              <Field id="plan-flat" label="OR $ PER PAYCHECK · SALARY BLANK" value={inputs.contribution} onChange={setText("contribution")} />
               <Field id="plan-age" label="AGE TODAY" value={inputs.age} onChange={setText("age")} />
               <Field id="plan-wr" label="FIRST-YEAR WITHDRAWAL" value={inputs.withdrawalRate} onChange={setText("withdrawalRate")} suffix="% of balance" />
             </div>
@@ -239,7 +251,7 @@ export default function Plan() {
                 <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.7, fontFamily: "Georgia, serif" }}>
                   {data.salary > 0
                     ? `Contributing ${pct(data.pct, 0)} of ${money(data.salary)} adds ${money(data.employeeTotal)} of your own money and ${money(data.agencyTotal)} from your agency over ${data.years} years. `
-                    : `You add ${money(data.contributed)} over ${data.years} years. `}
+                    : `You add ${money(data.contributed)} over ${data.years} years (a flat amount every two weeks). `}
                   {`At retirement the middle outcome is ${money(t.retire.p50)} with the rule on ${pctLabel(data.coverage)} of the balance, against ${money(c.retire.p50)} holding C. `}
                   {retiring
                     ? `Drawing ${pct(data.withdrawalRate, 1)} in the first year and 2.5% more each year after${data.rmdAge ? `, with required minimum distributions from age ${data.rmdAge}` : ""}, the money runs out in ${pct(t.depletedShare)} of futures under the rule, ${pct(c.depletedShare)} holding C and ${pct(g.depletedShare)} holding G. In the bad case (10th percentile) you end with ${money(t.final.p10)} under the rule versus ${money(c.final.p10)} holding C.`

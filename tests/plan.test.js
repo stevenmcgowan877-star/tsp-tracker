@@ -73,7 +73,9 @@ test("legacy flat contributions still work and report percentile bands", () => {
   }
   assert.equal(r.strategies.G.worstDrawdown.p10, 0);
   assert.ok(r.strategies.G.final.p50 > 100000 + 500 * 70);
-  assert.equal(r.contributed, 500 * Math.floor(TRADING_DAYS / PAY_PERIOD) * 3);
+  assert.equal(r.contributed, 500 * Math.floor((3 * TRADING_DAYS) / PAY_PERIOD));
+  const odd = runPlan(history(), { balance: 0, contribution: 100, years: 7, paths: 5 });
+  assert.equal(odd.contributed, 100 * Math.floor((7 * TRADING_DAYS) / PAY_PERIOD), "counts every deposit, not 25 a year");
 });
 
 test("salary mode adds the employee deposit and the agency match", () => {
@@ -121,4 +123,31 @@ test("runPlan validates its inputs", () => {
   assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 0 }), /required/);
   assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 41 }), /required/);
   assert.throws(() => runPlan(history(), { balance: 1, contribution: 0, years: 5, retireYears: 41 }), /retireYears/);
+});
+
+test("while OFF the rule holds the coverage split and sends new money the same way", () => {
+  // C falls 0.1% every day and G is flat, so every bootstrapped future is
+  // identical and the rule stays OFF from start to finish.
+  const mk = (r) => {
+    const C = [], G = [];
+    let c = 100;
+    for (let i = 0; i < 600; i++) {
+      c *= 1 + r;
+      const date = new Date(Date.UTC(2015, 0, 1) + i * 86400000).toISOString().slice(0, 10);
+      C.push({ date, close: c }); G.push({ date, close: 10 });
+    }
+    return { C, G };
+  };
+  const down = runPlan(mk(-0.001), { balance: 1000, contribution: 100, years: 1, coverage: 0.5, paths: 5 });
+  assert.equal(down.startState, "OFF");
+  let c = 500, g = 500;
+  for (let t = 0; t < TRADING_DAYS; t++) {
+    c *= 0.999;
+    if ((t + 1) % PAY_PERIOD === 0) { c += 50; g += 50; }
+  }
+  assert.ok(Math.abs(down.strategies.trend.final.p50 - (c + g)) < 1e-6);
+  // C rising 0.1% every day keeps the rule ON: it is simply holding C.
+  const up = runPlan(mk(0.001), { balance: 1000, contribution: 100, years: 1, coverage: 0.5, paths: 5 });
+  assert.equal(up.startState, "ON");
+  assert.ok(Math.abs(up.strategies.trend.final.p50 - up.strategies.C.final.p50) < 1e-6);
 });

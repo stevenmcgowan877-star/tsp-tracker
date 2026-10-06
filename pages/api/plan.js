@@ -1,5 +1,6 @@
 import { fetchTspPrices } from "../../lib/tspGov.js";
 import { runPlan, BLOCK_OPTIONS, DEFAULT_BLOCK } from "../../lib/plan.js";
+import { parseCoverage } from "../../lib/settings.js";
 
 const cache = new Map();
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
     years: Math.round(clamp(num(q.years, 20), 1, 40)),
     retireYears: Math.round(clamp(num(q.retireYears, 0), 0, 40)),
     withdrawalRate: clamp(num(q.withdrawalRate, 4), 0, 20) / 100,
-    coverage: clamp(num(q.coverage, 1), 0, 1),
+    coverage: parseCoverage(typeof q.coverage === "string" ? q.coverage : null, 1),
     block: BLOCK_OPTIONS.includes(num(q.block, DEFAULT_BLOCK)) ? num(q.block, DEFAULT_BLOCK) : DEFAULT_BLOCK,
   };
   const key = JSON.stringify(params);

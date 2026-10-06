@@ -47,7 +47,14 @@ test("rule OFF wants G and reports no cushion", () => {
   assert.equal(safe.cushionDollars, null);
   const exposed = assessHoldings({ C: "60000", G: "40000" }, off, backtest, 1);
   assert.equal(exposed.aligned, false);
-  assert.match(exposed.message, /100% in G; you hold 40% in G and 60% in equities/);
+  assert.match(exposed.message, /100% in G; you hold 40% in G and 60% in C/);
+});
+
+test("at 75% coverage OFF needs both the G and the C share on target", () => {
+  assert.equal(assessHoldings({ G: "75000", C: "25000" }, off, backtest, 0.75).aligned, true);
+  const inS = assessHoldings({ G: "75000", S: "25000" }, off, backtest, 0.75);
+  assert.equal(inS.aligned, false, "the uncovered share belongs in C, not S");
+  assert.match(inS.message, /plus 25% in other funds/);
 });
 
 test("an unavailable rule yields no alignment verdict", () => {

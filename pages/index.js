@@ -101,6 +101,8 @@ export default function Home() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [coverage]);
+  // While a new coverage is loading, show nothing rather than the old mix's numbers.
+  const summaryForCoverage = backtestSummary && backtestSummary.coverage === coverage ? backtestSummary : null;
 
   const getAIInsight = async () => {
     if (!funds.length) return;
@@ -218,8 +220,8 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <ActionCard trend={trend} coverage={coverage} onCoverage={changeCoverage} hybrid={backtestSummary?.strategies?.hybrid} />
-              <HoldingsPanel trend={trend} backtest={backtestSummary} coverage={coverage} />
+              <ActionCard trend={trend} coverage={coverage} onCoverage={changeCoverage} hybrid={summaryForCoverage?.strategies?.hybrid} since={summaryForCoverage?.start} />
+              <HoldingsPanel trend={trend} backtest={summaryForCoverage} coverage={coverage} />
               <Recommendation funds={funds} />
 
               {/* AI Insight */}

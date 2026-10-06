@@ -128,17 +128,19 @@ Every Lifecycle fund from L Income to L 2075, compared with holding C, holding G
 
 ### How much of the balance the rule moves
 
-The research gap analysis found that every paid TSP service and the retirement literature favour a partial allocation over all-or-nothing switching (a 50/50 static and trend mix produced the best worst-case 30-year withdrawal rate in Early Retirement Now's 1871-2025 cohort study). The dashboard therefore lets you choose the share of the balance the rule governs; the rest stays in C through every flip. Default 75%. On the 2004-2026 replay:
+The research gap analysis found that every paid TSP service and the retirement literature favour a partial allocation over all-or-nothing switching (a 50/50 static and trend mix produced the best worst-case 30-year withdrawal rate in Early Retirement Now's 1871-2025 cohort study). The dashboard therefore lets you choose the share of the balance the rule moves. When the rule turns OFF, that share of the whole balance goes to G and the rest stays in C; when it turns ON, everything goes back to C. The split drifts between flips. Default 75%. The `/backtest` replay of exactly that advice, March 2004 to October 2026, with the rule starting in its actual state, next-close execution and the two-transfer limit:
 
 | Share the rule moves | Return a year | Worst loss |
 |---|---|---|
 | 100% | 10.1% | -19% |
-| 75% (default) | 10.4% | -20% |
-| 50% | 10.6% | -30% |
-| 25% | 10.8% | -43% |
+| 75% (default) | 10.5% | -20% |
+| 50% | 10.8% | -29% |
+| 25% | 11.0% | -42% |
 | 0% (hold C) | 11.1% | -55% |
 
-A second experiment (October 2026) tested the extensions the research suggested, all with next-close execution and the two-transfer limit enforced:
+Moving 75% instead of 100% left the worst loss almost unchanged (-19.5% against -19.4%) and gave back 0.3 points a year of the return the rule costs. Across 209 rolling five-year windows (stepped monthly) the 75% version had the higher risk-adjusted return in 65% and the higher return in 74%, which is why it is the default.
+
+A second experiment (October 2026) tested the extensions the research suggested, all with next-close execution and the two-transfer limit enforced. It uses the same window and start as the strategy table above (June 2004, every strategy flat in G), so its first two rows differ slightly from the coverage table:
 
 | Strategy, 2004-2026 | Return a year | Worst loss | Transfers | Blocked by the monthly limit |
 |---|---|---|---|---|
@@ -148,18 +150,26 @@ A second experiment (October 2026) tested the extensions the research suggested,
 | Same rule on C and S separately | 9.6% | -18% | 59 | 0 |
 | Rule on C averaged over 150, 200 and 250-day lookbacks | 10.0% | -19% | 67 | 21 |
 
-Filtering S and I as well cost about a point of return a year in both halves of the history, traded three times as often and ran into the transfer limit; averaging lookbacks added transfers without adding return. Across rolling five-year windows the 75% version beat the 100% version on risk-adjusted return in 70% of windows and on return in 74%, with a near-identical worst loss, which is why it is the default. None of the extensions were adopted.
+Filtering S and I as well cost about a point of return a year in both halves of the history, traded three times as often and ran into the transfer limit; averaging lookbacks added transfers without adding return. None of the extensions were adopted.
 
-The choice is stored in the browser and used by the action card, the holdings check, the backtest page and the planner. The flip alert reads `RULE_COVERAGE` (0 to 1, default 1). New contributions can be pointed at the same split with a contribution election, which is unlimited and does not use up the two monthly transfers.
+The choice is stored in the browser and used by the action card, the holdings check, the backtest page and the planner. The flip alert reads `RULE_COVERAGE` as a fraction (`0.5`) or a percentage (`50` or `50%`); unset or unreadable, it uses the dashboard's default of 75%. New contributions can be pointed at the same split with a contribution election, which is unlimited and does not use up the two monthly transfers.
 
 ### Retirement planner (`/plan`)
 
-Enter a balance, salary, contribution rate, age, years to retirement, years in retirement and a first-year withdrawal rate (all kept in the browser). The server builds 300 futures by block-bootstrapping the real daily C and G returns (jointly), runs the trend rule on your chosen share of the balance starting from its real current state, and models the TSP's own cash flows:
+Enter a balance, salary, contribution rate, age, years to retirement, years in retirement and a first-year withdrawal rate (all kept in the browser). The server builds 300 futures by block-bootstrapping the real daily C and G returns (jointly), runs the trend rule on your chosen share of the balance starting from its real current state (moving that share at each flip, sending new contributions the same way, and never more than two transfers back into C a month), and models the TSP's own cash flows:
 
-- Working years: 26 deposits a year at your rate, capped at the 2026 elective limit ($24,500, plus $8,000 from age 50 or $11,250 at ages 60 to 63), with the FERS automatic 1% and a match on the first 5% that stops in any pay period after you hit the limit.
+- Working years: 26 deposits a year at your rate (or, with the salary left blank, a flat amount per paycheck), capped at the 2026 elective limit ($24,500, plus $8,000 from age 50 or $11,250 at ages 60 to 63), with the FERS automatic 1% and a match on the first 5% that stops in any pay period after you hit the limit.
 - Retirement: the first-year withdrawal grows 2.5% a year, is never less than the required minimum distribution (age 73, or 75 if born 1960 or later, IRS Uniform Lifetime Table), and is taken pro rata from every fund held, as the TSP pays it.
 
-Results are 10th to 90th percentile bands per year, balance at retirement, the share of futures in which the money runs out, and the bad-case ending balance. History chunk length is selectable (3 months, 1 year default, 3 years): short chunks scramble the multi-year trends a trend rule relies on, longer ones reuse more of the same history. With 1-year or 3-year chunks the rule's bad-case retirement outcomes beat holding C even though its median balance at retirement is lower, which is the sequence-risk effect the literature describes. Salary and limits are held flat, dollars are nominal, no taxes or fees. Engine in `lib/plan.js`.
+Results are 10th to 90th percentile bands per year, balance at retirement, the share of futures in which the money runs out, and the bad-case ending balance. History chunk length is selectable (3 months, 1 year default, 3 years): short chunks scramble the multi-year trends a trend rule relies on, longer ones reuse more of the same history. The rule's median balance is always lower than holding C's. What it buys is the bad case, and only when the history chunks are long enough to keep real trends. For a 45-year-old with $100,000, a $100,000 salary at 5%, 20 working years and 30 retired at a 4% first-year withdrawal, with the rule on 75% (October 2026 data):
+
+| History chunks | Money runs out, rule | Money runs out, hold C | Bad-case (10th percentile) ending balance, rule vs C |
+|---|---|---|---|
+| 3 months | 4% | 4% | $1.09M vs $1.93M |
+| 1 year (default) | 2% | 5% | $1.24M vs $1.17M |
+| 3 years | 0% | 3% | $2.75M vs $1.63M |
+
+With 3-month chunks, which scramble multi-year trends, the rule is simply worse. With longer chunks it runs out less often and leaves more in the bad case, the sequence-risk effect the literature describes. Salary and limits are held flat, dollars are nominal, no taxes or fees. Engine in `lib/plan.js`.
 
 ### Daily alert when the rule flips
 

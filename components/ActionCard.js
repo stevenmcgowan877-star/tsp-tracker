@@ -5,7 +5,7 @@ const mono = "'Space Mono', monospace";
 
 // The one card that tells the reader what to do: the slow trend rule on the
 // C Fund. Everything else on the dashboard is context.
-export default function ActionCard({ trend, coverage = 1, onCoverage, hybrid }) {
+export default function ActionCard({ trend, coverage = 1, onCoverage, hybrid, since }) {
   if (!trend) return null;
 
   if (!trend.available) {
@@ -80,7 +80,7 @@ export default function ActionCard({ trend, coverage = 1, onCoverage, hybrid }) 
           ))}
           {hybrid && (
             <span style={{ fontSize: 10, color: "#64748b", fontFamily: mono }}>
-              since 2004: {(hybrid.cagr * 100).toFixed(1)}% a year, worst loss {(hybrid.maxDrawdown * 100).toFixed(0)}%
+              since {since ? since.slice(0, 4) : "2004"}: {(hybrid.cagr * 100).toFixed(1)}% a year, worst loss {(hybrid.maxDrawdown * 100).toFixed(0)}%
             </span>
           )}
         </div>

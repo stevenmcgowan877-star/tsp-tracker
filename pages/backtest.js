@@ -293,6 +293,34 @@ export default function Backtest() {
                 </div>
               </div>
 
+              {/* Live record: only results after the parameters were fixed */}
+              {result.liveRecord && (() => {
+                const lr = result.liveRecord;
+                const longDate = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+                return (
+                  <div style={{ background: "rgba(15,23,42,0.6)", border: "1px solid #1e293b", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+                    <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 8 }}>◈ LIVE RECORD · SINCE THE RULE WAS FIXED ON {lr.adopted}</div>
+                    {lr.days === 0 ? (
+                      <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>
+                        Nothing yet. Everything above is a backtest; the live record starts with the first close after {longDate(lr.adopted)} and can never be tuned after the fact.
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+                          <Stat label="RULE" value={pct(lr.trend.totalReturn)} sub={`worst ${pct(lr.trend.maxDrawdown)}`} />
+                          {showMix && <Stat label={`YOUR MIX · ${Math.round(result.coverage * 100)}%`} value={pct(lr.hybrid.totalReturn)} sub={`worst ${pct(lr.hybrid.maxDrawdown)}`} />}
+                          <Stat label="HOLD C" value={pct(lr.C.totalReturn)} sub={`worst ${pct(lr.C.maxDrawdown)}`} />
+                          <Stat label="HOLD G" value={pct(lr.G.totalReturn)} />
+                        </div>
+                        <div style={{ fontSize: 10, color: "#475569", marginTop: 10, lineHeight: 1.6 }}>
+                          {lr.days} trading {lr.days === 1 ? "day" : "days"} from the close of {longDate(lr.from)} to {longDate(lr.to)}, {lr.switches} {lr.switches === 1 ? "move" : "moves"}. Short live records say little; they are shown so the backtest can be checked against what actually happened.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Rules */}
               <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.8, borderTop: "1px solid #0f172a", paddingTop: 14 }}>
                 <div style={{ fontSize: 9, letterSpacing: 3, marginBottom: 6 }}>HOW THIS WAS REPLAYED</div>

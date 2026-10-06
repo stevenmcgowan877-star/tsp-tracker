@@ -11,7 +11,7 @@ function summarise(r) {
   const strip = ({ annual, recentSwitches, ...rest }) => rest;
   return {
     start: r.start, end: r.end, years: r.years, trendRule: r.trendRule,
-    coverage: r.coverage,
+    coverage: r.coverage, liveRecord: r.liveRecord,
     strategies: { trend: strip(r.strategies.trend), hybrid: strip(r.strategies.hybrid), composite: strip(r.strategies.composite) },
     benchmarks: { C: strip(r.benchmarks.C), G: strip(r.benchmarks.G), EW: strip(r.benchmarks.EW) },
   };

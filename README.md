@@ -83,7 +83,7 @@ npm run lint    # next/core-web-vitals
 
 ### The action rule
 
-The rule's parameters were fixed on 2026-10-06 (`RULE_ADOPTED` in `lib/trendRule.js`). Every result before that date is a backtest; results after it are a live record that could not have been tuned.
+The rule's parameters were fixed on 2026-10-06 (`RULE_ADOPTED` in `lib/trendRule.js`). Every result before that date is a backtest; results after it are a live record that could not have been tuned. The `/backtest` page reports that live record separately (rule, your mix, holding C and holding G from the first close after adoption), so the backtest can be checked against what actually happened.
 
 The dashboard's one instruction comes from a slow trend filter on the C Fund (`lib/trendRule.js`):
 

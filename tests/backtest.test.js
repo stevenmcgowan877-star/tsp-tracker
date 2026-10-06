@@ -145,3 +145,21 @@ test("coverageCurve rebalances to the advised split on each flip and drifts betw
   g = 0.75 * c; c = 0.25 * c; c *= 1.1; g *= 1.01;
   assert.ok(Math.abs(curve[4] - (c + g)) < 1e-9, "OFF moves 75% of the whole balance to G");
 });
+
+test("the live record starts at the adoption date and is empty before it", () => {
+  // Synthetic dates run 2020-01-01 to 2021-11-30, all before adoption.
+  const before = runBacktest(synthetic(), { lookback: 100 });
+  assert.equal(before.liveRecord.days, 0, "no closes after adoption yet");
+  assert.equal(before.liveRecord.from, before.end);
+  // Shift the same history so it straddles the adoption date.
+  const shift = (pts) => pts.map((p, i) => ({ ...p, date: new Date(Date.UTC(2025, 0, 1) + i * 86400000).toISOString().slice(0, 10) }));
+  const s = synthetic();
+  for (const k of Object.keys(s)) s[k] = shift(s[k]);
+  const r = runBacktest(s, { lookback: 100, coverage: 0.75 });
+  const live = r.liveRecord;
+  assert.equal(live.from, "2026-10-06");
+  assert.ok(live.days > 0 && live.to === r.end);
+  // The sampled curve may skip the anchor, so check C against raw closes.
+  const cAt = (d) => s.C.find((p) => p.date === d).close;
+  assert.ok(Math.abs(live.C.totalReturn - (cAt(r.end) / cAt("2026-10-06") - 1)) < 1e-9);
+});

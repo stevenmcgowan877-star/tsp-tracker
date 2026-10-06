@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -103,7 +103,9 @@ export default function Backtest() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const requestId = useRef(0);
   const load = useCallback(async (key) => {
+    const id = ++requestId.current; // a later request wins, whatever order the responses arrive in
     setLoading(true);
     setError(null);
     const range = RANGES.find((r) => r.key === key) || RANGES[0];
@@ -111,9 +113,11 @@ export default function Backtest() {
     try {
       const res = await fetch(`/api/backtest${start ? `?start=${start}` : ""}`);
       const json = await res.json();
+      if (id !== requestId.current) return;
       if (!res.ok) throw new Error(json.error || "Backtest failed");
       setResult(json);
     } catch (e) {
+      if (id !== requestId.current) return;
       setError(e.message);
     }
     setLoading(false);
@@ -283,6 +287,7 @@ export default function Backtest() {
                 <div style={{ fontSize: 9, letterSpacing: 3, marginBottom: 6 }}>HOW THIS WAS REPLAYED</div>
                 Trend rule: hold C while it closes more than {Math.round(result.trendRule.band * 100)}% above its {result.trendRule.n}-day average, move to G once it closes more than {Math.round(result.trendRule.band * 100)}% below, otherwise do nothing.
                 Five-signal score: each day the funds are scored exactly as the dashboard scores them using the trailing {result.lookback} closes; move into the top-ranked fund when it reads BUY, to G when the held fund reads SELL.
+                A shorter range starts the trend rule in whatever state it was actually in on that date; the five-signal score starts in G.
                 Both act at the close after the signal and obey the TSP limit of two unrestricted interfund transfers per calendar month (further moves only into G).
                 Benchmarks reinvest nothing and pay no costs; neither do the rules. Past performance of a rule set does not predict its future, and this page is not financial advice.
               </div>

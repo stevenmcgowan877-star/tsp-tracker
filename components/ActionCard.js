@@ -12,7 +12,7 @@ export default function ActionCard({ trend }) {
       <div style={{ background: "rgba(15,23,42,0.9)", border: "1px solid #1e293b", borderRadius: 12, padding: "18px 22px", marginBottom: 16 }}>
         <div style={{ fontSize: 9, color: "#475569", letterSpacing: 3, marginBottom: 8 }}>◈ ACTION RULE · 200-DAY TREND ON THE C FUND</div>
         <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.7 }}>
-          Not enough price history to evaluate the rule ({trend.reason}). It needs official tsp.gov prices; the proxy feed only carries 100 days.
+          The rule cannot be evaluated right now. {trend.reason}
         </div>
       </div>
     );

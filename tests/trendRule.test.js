@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evaluateTrendRule, nextTrendState, smaAt, TREND_N, TREND_BAND } from "../lib/trendRule.js";
+import { evaluateTrendRule, nextTrendState, trendStateAt, smaAt, TREND_N, TREND_BAND } from "../lib/trendRule.js";
 
 const series = (closes) => closes.map((close, i) => ({ date: `D${String(i).padStart(4, "0")}`, close }));
 
@@ -47,4 +47,24 @@ test("evaluateTrendRule flips OFF after a fall through the band and back ON on r
   const r2 = evaluateTrendRule(series([...up, ...down, ...recover]));
   assert.equal(r2.state, "ON");
   assert.equal(r2.flipCount, 3);
+});
+
+test("barsSinceFlip counts closes since the state began", () => {
+  const up = Array.from({ length: 260 }, (_, i) => 100 + i * 0.2);
+  const down = Array.from({ length: 60 }, (_, i) => 151.8 - i * 1.0);
+  const r = evaluateTrendRule(series([...up, ...down]));
+  assert.equal(r.state, "OFF");
+  const idx = [...up, ...down].length - 1;
+  const flipIdx = Number(r.since.slice(1));
+  assert.equal(r.barsSinceFlip, idx - flipIdx);
+  const justFlipped = evaluateTrendRule(series([...up, ...down.slice(0, flipIdx - up.length + 1)]));
+  assert.equal(justFlipped.barsSinceFlip, 0);
+});
+
+test("trendStateAt agrees with evaluateTrendRule at every index", () => {
+  const closes = Array.from({ length: 400 }, (_, i) => 100 + 20 * Math.sin(i / 40) + i * 0.05);
+  for (const t of [200, 250, 300, 399]) {
+    const viaEval = evaluateTrendRule(series(closes.slice(0, t + 1))).state;
+    assert.equal(trendStateAt(closes, t), viaEval, `index ${t}`);
+  }
 });

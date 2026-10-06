@@ -114,6 +114,24 @@ Each signal scores −1, 0 or +1 (MACD scores ±0.7) and is weighted:
 
 Composite above +0.25 reads BUY, below −0.25 reads SELL, otherwise MIXED. The RSI and zone signals are contrarian, so a fund at fresh highs usually reads MIXED. Weights live in `lib/marketData.js` (`WEIGHTS`). The score describes conditions on the dashboard; it is not the action rule.
 
+### Daily alert when the rule flips
+
+`vercel.json` schedules `/api/check-trend` every Tuesday to Saturday at 02:30 UTC (after TSP posts the previous day's prices). The check reads tsp.gov fresh and is stateless: it alerts while the rule's state began within the last two closes, so a flip whose price posted late is still caught, at the cost of a possible repeat the next day. Flips happen about once a year. Configure on Vercel:
+
+| Variable | Purpose |
+|---|---|
+| `ALERT_WEBHOOK_URL` | Where to POST. The JSON body carries `text` (Slack), `content` (Discord) and structured fields, so a Slack or Discord incoming webhook, or a Zapier/IFTTT/Make catch hook that forwards to email or SMS, all work unchanged. |
+| `ALERT_ON_NEAR_TRIGGER` | Set to `1` to also get a heads-up when the close is within 1.5% of a trigger. |
+| `CRON_SECRET` | Optional. Vercel sends it as a Bearer token on cron calls; the endpoint then rejects callers without that header. |
+
+Test the wiring with a dry run, which returns the evaluation and the message it would send without sending it:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" "https://your-app.vercel.app/api/check-trend?dry=1"
+```
+
+Vercel's Hobby plan runs crons once a day within an hour of the scheduled time, which is fine for a rule that acts at the next close. For exactly-once delivery regardless of timing, persist the last alerted flip date in a store such as Vercel KV and compare against it.
+
 ### Backtest (`/backtest`)
 
 The backtest page replays the trend rule and the five-signal score over the full tsp.gov history (2004 onward) and compares them with holding the C Fund, holding the G Fund, and an equal-weight C/S/I/F mix rebalanced monthly. Range presets cover 1, 3, 5 and 10 years and the whole history. The engine is `lib/backtest.js`; results are cached for 6 hours.

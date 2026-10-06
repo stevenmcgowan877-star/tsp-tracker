@@ -1,7 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { FUNDS, fetchFundPrices, computeSignals } from "../../lib/marketData.js";
-import { fetchTspPrices } from "../../lib/tspGov.js";
-import { evaluateTrendRule } from "../../lib/trendRule.js";
+import { loadDashboardData } from "../../lib/dashboardData.js";
 
 // The project deliberately uses Haiku for this short, frequent call.
 const MODEL = "claude-haiku-4-5-20251001";
@@ -50,14 +48,9 @@ export default async function handler(req, res) {
   let summary;
   let asOf;
   try {
-    const funds = await Promise.all(
-      FUNDS.map(async (fund) => ({ ...fund, ...computeSignals(await fetchFundPrices(fund)) }))
-    );
-    funds.sort((a, b) => b.composite - a.composite);
-    asOf = funds[0].prices[funds[0].prices.length - 1]?.date || "unknown";
-    const tsp = process.env.TSP_DATA_SOURCE === "proxy" ? null : await fetchTspPrices();
-    const trend = evaluateTrendRule(tsp && tsp.C ? tsp.C : funds.find((f) => f.id === "C")?.prices || []);
-    summary = buildSummary(funds, { official: funds.every((f) => f.source === "tsp"), asOf, trend });
+    const data = await loadDashboardData();
+    asOf = data.asOf;
+    summary = buildSummary(data.funds, { official: data.isOfficial, asOf, trend: data.trend });
   } catch (err) {
     console.error("ai-insight: could not build fund summary", err);
     return res.status(500).json({ error: "Could not load fund data" });

@@ -69,3 +69,15 @@ test("fetchTspPrices returns null on HTTP errors or bad bodies instead of throwi
   const garbage = await fetchTspPrices({ fetchImpl: async () => ({ ok: true, status: 200, text: async () => "<html>nope</html>" }), now: 2 });
   assert.equal(garbage, null);
 });
+
+test("concurrent callers share one download and fresh=true bypasses the cache", async () => {
+  _resetTspCache();
+  let calls = 0;
+  const fetchImpl = async () => { calls++; await new Promise((r) => setTimeout(r, 5)); return { ok: true, status: 200, text: async () => sampleCsv(50) }; };
+  const [a, b, c] = await Promise.all([fetchTspPrices({ fetchImpl, now: 1 }), fetchTspPrices({ fetchImpl, now: 1 }), fetchTspPrices({ fetchImpl, now: 1 })]);
+  assert.equal(calls, 1);
+  assert.equal(a, b);
+  assert.equal(b, c);
+  await fetchTspPrices({ fetchImpl, now: 2, fresh: true });
+  assert.equal(calls, 2);
+});

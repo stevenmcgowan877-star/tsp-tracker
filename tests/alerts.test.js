@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildAlert, postWebhook } from "../lib/alerts.js";
 
-const base = { available: true, n: 200, state: "ON", hold: "C", asOf: "2026-10-05", since: "2026-04-09", price: 125.447, sma: 116.18, pctVsSma: 7.98, sellTrigger: 112.69, buyTrigger: 119.67 };
+const base = { available: true, n: 200, state: "ON", hold: "C", asOf: "2026-10-05", since: "2026-04-09", barsSinceFlip: 123, price: 125.447, sma: 116.18, pctVsSma: 7.98, sellTrigger: 112.69, buyTrigger: 119.67 };
 
 test("no alert on an ordinary day", () => {
   assert.equal(buildAlert(base), null);
@@ -10,12 +10,13 @@ test("no alert on an ordinary day", () => {
 });
 
 test("a flip on the latest bar produces an action message", () => {
-  const toG = buildAlert({ ...base, state: "OFF", hold: "G", since: "2026-10-05", price: 112.0, pctVsSma: -3.6 });
+  const toG = buildAlert({ ...base, state: "OFF", hold: "G", since: "2026-10-05", barsSinceFlip: 0, price: 112.0, pctVsSma: -3.6 });
   assert.equal(toG.kind, "flip");
   assert.match(toG.title, /MOVE TO G/);
   assert.match(toG.text, /100% into G before noon ET/);
-  const toC = buildAlert({ ...base, since: "2026-10-05" });
+  const toC = buildAlert({ ...base, since: "2026-10-05", barsSinceFlip: 0 });
   assert.match(toC.title, /MOVE TO C/);
+  assert.match(toC.text, /flipped ON on 2026-10-05/);
 });
 
 test("a near-trigger warning fires only within the band and only when enabled", () => {
@@ -29,12 +30,18 @@ test("a near-trigger warning fires only within the band and only when enabled", 
 });
 
 test("a flip takes precedence over a near warning", () => {
-  const both = { ...base, since: "2026-10-05", price: 113.5 };
+  const both = { ...base, since: "2026-10-05", barsSinceFlip: 0, price: 113.5 };
   assert.equal(buildAlert(both).kind, "flip");
 });
 
+test("a flip one close ago still alerts (late posting), two closes ago does not", () => {
+  assert.equal(buildAlert({ ...base, barsSinceFlip: 1 }).kind, "flip");
+  assert.equal(buildAlert({ ...base, barsSinceFlip: 2 }), null);
+  assert.equal(buildAlert({ ...base, barsSinceFlip: 1 }, { lookbackBars: 1 }), null);
+});
+
 test("postWebhook sends JSON with Slack and Discord keys and fails on non-2xx", async () => {
-  const alert = buildAlert({ ...base, since: "2026-10-05" });
+  const alert = buildAlert({ ...base, since: "2026-10-05", barsSinceFlip: 0 });
   let seen;
   const ok = async (url, opts) => { seen = { url, ...opts }; return { ok: true, status: 200 }; };
   const body = await postWebhook("https://hooks.example/abc", alert, base, ok);

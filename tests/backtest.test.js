@@ -81,3 +81,25 @@ test("runBacktest honours a start/end window and rejects an empty one", () => {
 test("runBacktest needs more history than the warm-up", () => {
   assert.throws(() => runBacktest(synthetic(150), { lookback: 100 }), /Not enough history/);
 });
+
+test("a windowed replay seeds the trend rule with its real state on the start date", () => {
+  // The synthetic C series trends up throughout, so the rule is ON well before
+  // any late start date; the window must begin in C, not flat in G.
+  const r = runBacktest(synthetic(), { lookback: 100, start: "2021-06-01" });
+  assert.equal(r.strategies.trend.initialHeld, "C");
+  assert.equal(r.curve[0].held, "C");
+  assert.ok(r.strategies.trend.timeIn.C > 0.9, JSON.stringify(r.strategies.trend.timeIn));
+  assert.equal(r.strategies.composite.initialHeld, "G");
+});
+
+test("the curve's held field lines up with the switch dates", () => {
+  const r = runBacktest(synthetic(), { lookback: 100 });
+  const sw = r.strategies.trend.recentSwitches.slice().reverse(); // oldest first
+  if (!sw.length) return;
+  const first = sw[0];
+  // Every sampled point before the first switch date shows the initial holding.
+  for (const p of r.curve) {
+    if (p.date < first.date) assert.equal(p.held, r.strategies.trend.initialHeld, `${p.date} before ${first.date}`);
+    else { assert.equal(p.held, first.to); break; }
+  }
+});

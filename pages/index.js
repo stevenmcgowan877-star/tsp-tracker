@@ -1,10 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
+import ShareMeta from "../components/ShareMeta";
+import Link from "next/link";
 import FundCard from "../components/FundCard";
+import ActionCard from "../components/ActionCard";
+import HoldingsPanel from "../components/HoldingsPanel";
+import { readCoverage, writeCoverage, DEFAULT_COVERAGE } from "../lib/settings";
 
 function Recommendation({ funds }) {
   if (!funds.length) return null;
   const top = funds[0]; // already sorted by composite
+  const topColor = top.signal === "BUY" ? "#00ff88" : top.signal === "AVOID" ? "#ff4466" : "#fbbf24";
   return (
     <div style={{
       background: "linear-gradient(135deg, rgba(0,255,136,0.05) 0%, rgba(0,207,255,0.03) 100%)",
@@ -12,7 +18,7 @@ function Recommendation({ funds }) {
       padding: "20px 24px", marginBottom: 24, position: "relative", overflow: "hidden",
     }}>
       <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,255,136,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ fontSize: 9, color: "#475569", fontFamily: "monospace", letterSpacing: 3, marginBottom: 12 }}>◈ TOP RECOMMENDATION TODAY</div>
+      <div style={{ fontSize: 9, color: "#475569", fontFamily: "monospace", letterSpacing: 3, marginBottom: 12 }}>◈ SIGNAL CONDITIONS · CONTEXT, NOT THE ACTION RULE</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div>
           <span style={{ fontFamily: "monospace", fontSize: 38, fontWeight: 700, color: top.color }}>{top.id}</span>
@@ -20,13 +26,15 @@ function Recommendation({ funds }) {
         </div>
         <div style={{ flex: 1, color: "#64748b", fontSize: 13, fontStyle: "italic", lineHeight: 1.6 }}>
           {top.signal === "BUY"
-            ? `${top.name} is showing the strongest buy signals. Consider switching into or increasing your allocation here.`
-            : `${top.name} leads on composite score, but signals are mixed — monitor closely before acting.`}
+            ? `${top.name} leads the five-signal score and reads BUY. Replayed since 2004, acting on these daily scores alone returned about half of what the trend rule above did, so treat this as colour on the market, not an instruction.`
+            : top.signal === "AVOID"
+            ? `Every fund reads SELL on the five-signal score, ${top.name} least of all. The action rule above decides whether that matters.`
+            : `${top.name} leads the five-signal score but readings are mixed. The action rule above decides; this panel describes conditions.`}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 10, height: 10, borderRadius: "50%", background: top.signal === "BUY" ? "#00ff88" : "#fbbf24", boxShadow: `0 0 10px ${top.signal === "BUY" ? "#00ff88" : "#fbbf24"}` }} />
-          <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, letterSpacing: 2, color: top.signal === "BUY" ? "#00ff88" : "#fbbf24" }}>
-            {top.signal === "BUY" ? "SWITCH IN" : "HOLD"}
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: topColor, boxShadow: `0 0 10px ${topColor}` }} />
+          <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, letterSpacing: 2, color: topColor }}>
+            {top.signal === "BUY" ? "CONDITIONS: BUY" : top.signal === "AVOID" ? "CONDITIONS: SELL" : "CONDITIONS: MIXED"}
           </span>
         </div>
       </div>
@@ -53,6 +61,12 @@ export default function Home() {
   const [funds, setFunds] = useState([]);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [isDemo, setIsDemo] = useState(false);
+  const [isOfficial, setIsOfficial] = useState(false);
+  const [trend, setTrend] = useState(null);
+  const [backtestSummary, setBacktestSummary] = useState(null);
+  const [coverage, setCoverage] = useState(DEFAULT_COVERAGE);
+  useEffect(() => { setCoverage(readCoverage()); }, []);
+  const changeCoverage = (c) => { setCoverage(c); writeCoverage(c); };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aiInsight, setAiInsight] = useState("");
@@ -68,6 +82,8 @@ export default function Home() {
       setFunds(json.funds);
       setUpdatedAt(json.updatedAt);
       setIsDemo(json.isDemo);
+      setIsOfficial(Boolean(json.isOfficial));
+      setTrend(json.trend || null);
     } catch (e) {
       setError(e.message);
     }
@@ -76,21 +92,27 @@ export default function Home() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Headline backtest numbers for the holdings panel; failure just hides them.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/backtest?summary=1&coverage=${coverage}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled && j) setBacktestSummary(j); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [coverage]);
+  // While a new coverage is loading, show nothing rather than the old mix's numbers.
+  const summaryForCoverage = backtestSummary && backtestSummary.coverage === coverage ? backtestSummary : null;
+
   const getAIInsight = async () => {
     if (!funds.length) return;
     setLoadingAI(true);
     setAiInsight("");
-    const summary = funds.map(f =>
-      `${f.id} Fund (${f.desc}): Signal=${f.signal}, RSI=${f.rsi}, Composite=${(f.composite * 100).toFixed(0)}, ${f.inDemandZone ? "IN DEMAND ZONE" : f.inSupplyZone ? "IN SUPPLY ZONE" : "neutral zone"}`
-    ).join("\n");
     try {
-      const res = await fetch("/api/ai-insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary }),
-      });
+      // The server builds the fund summary from the same cached data the page shows.
+      const res = await fetch("/api/ai-insight", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coverage }) });
       const data = await res.json();
-      setAiInsight(data.insight || "No insight returned.");
+      setAiInsight(data.insight || data.error || "No insight returned.");
     } catch {
       setAiInsight("Could not load AI insight.");
     }
@@ -101,10 +123,10 @@ export default function Home() {
     <>
       <Head>
         <title>TSP Fund Signal Tracker</title>
-        <meta name="description" content="Live technical signals to help you decide when to switch TSP funds" />
+        <meta name="description" content="One evidence-backed action rule for your TSP allocation, on official tsp.gov prices" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-        <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        {ShareMeta({ title: "TSP Fund Signal Tracker", description: "One evidence-backed action rule for your TSP allocation, on official tsp.gov prices.", path: "/" })}
       </Head>
 
       <style>{`
@@ -136,7 +158,7 @@ export default function Home() {
                   FUND SIGNAL <span style={{ color: "#00ff88" }}>TRACKER</span>
                 </h1>
                 <p style={{ fontSize: 11, color: "#334155", fontStyle: "italic", marginTop: 4 }}>
-                  Moving Averages · RSI · MACD · Supply & Demand Zones · Live Proxy Data
+                  200-Day Trend Rule · Moving Averages · RSI · MACD · Zones · Volatility · {isOfficial ? "Official TSP Prices" : "Live Proxy Data"}
                 </p>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -145,6 +167,26 @@ export default function Home() {
                     UPDATED {new Date(updatedAt).toLocaleTimeString()}
                   </div>
                 )}
+                <Link href="/plan" style={{
+                  display: "inline-block", marginRight: 8, border: "1px solid #1e293b", color: "#475569",
+                  fontFamily: "'Space Mono', monospace", fontSize: 10, padding: "6px 16px",
+                  borderRadius: 6, letterSpacing: 2, textDecoration: "none",
+                }}>PLANNER</Link>
+                <Link href="/lfunds" style={{
+                  display: "inline-block", marginRight: 8, border: "1px solid #1e293b", color: "#475569",
+                  fontFamily: "'Space Mono', monospace", fontSize: 10, padding: "6px 16px",
+                  borderRadius: 6, letterSpacing: 2, textDecoration: "none",
+                }}>L FUNDS</Link>
+                <Link href="/crises" style={{
+                  display: "inline-block", marginRight: 8, border: "1px solid #1e293b", color: "#475569",
+                  fontFamily: "'Space Mono', monospace", fontSize: 10, padding: "6px 16px",
+                  borderRadius: 6, letterSpacing: 2, textDecoration: "none",
+                }}>CRISES</Link>
+                <Link href="/backtest" style={{
+                  display: "inline-block", marginRight: 8, border: "1px solid #1e293b", color: "#475569",
+                  fontFamily: "'Space Mono', monospace", fontSize: 10, padding: "6px 16px",
+                  borderRadius: 6, letterSpacing: 2, textDecoration: "none",
+                }}>BACKTEST →</Link>
                 <button onClick={loadData} style={{
                   background: "transparent", border: "1px solid #1e293b", color: "#475569",
                   fontFamily: "'Space Mono', monospace", fontSize: 10, padding: "6px 16px",
@@ -178,6 +220,8 @@ export default function Home() {
             </div>
           ) : (
             <>
+              <ActionCard trend={trend} coverage={coverage} onCoverage={changeCoverage} hybrid={summaryForCoverage?.strategies?.hybrid} since={summaryForCoverage?.start} />
+              <HoldingsPanel trend={trend} backtest={summaryForCoverage} coverage={coverage} />
               <Recommendation funds={funds} />
 
               {/* AI Insight */}
@@ -205,7 +249,9 @@ export default function Home() {
 
               <div style={{ marginTop: 28, paddingTop: 16, borderTop: "1px solid #0f172a", fontSize: 10, color: "#1e293b", textAlign: "center", lineHeight: 1.8 }}>
                 FOR EDUCATIONAL PURPOSES ONLY · NOT FINANCIAL ADVICE<br />
-                TSP FUND SIGNALS DERIVED FROM ETF PROXIES (SPY, IWM, EFA, AGG) · CONSULT TSP.GOV FOR OFFICIAL SHARE PRICES
+                {isOfficial
+                  ? "PRICES ARE OFFICIAL TSP SHARE PRICES FROM TSP.GOV, UPDATED ONCE PER TRADING DAY"
+                  : "TSP FUND SIGNALS DERIVED FROM ETF PROXIES (SPY, IWM, EFA, AGG) · CONSULT TSP.GOV FOR OFFICIAL SHARE PRICES"}
               </div>
             </>
           )}

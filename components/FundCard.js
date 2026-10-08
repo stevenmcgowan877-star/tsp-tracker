@@ -3,9 +3,9 @@ import MiniChart from "./MiniChart";
 
 function SignalBadge({ signal }) {
   const cfg = {
-    BUY:   { color: "#00ff88", bg: "#00ff8818", border: "#00ff8844", label: "SWITCH IN" },
-    HOLD:  { color: "#fbbf24", bg: "#fbbf2418", border: "#fbbf2444", label: "HOLD" },
-    AVOID: { color: "#ff4466", bg: "#ff446618", border: "#ff446644", label: "SWITCH OUT" },
+    BUY:   { color: "#00ff88", bg: "#00ff8818", border: "#00ff8844", label: "BUY SIGNALS" },
+    HOLD:  { color: "#fbbf24", bg: "#fbbf2418", border: "#fbbf2444", label: "MIXED" },
+    AVOID: { color: "#ff4466", bg: "#ff446618", border: "#ff446644", label: "SELL SIGNALS" },
   }[signal] || {};
   return (
     <span style={{
@@ -60,8 +60,13 @@ export default function FundCard({ fund }) {
             {fund.source === "demo" && (
               <span style={{ fontSize: 9, color: "#fbbf24", background: "#fbbf2415", border: "1px solid #fbbf2430", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", letterSpacing: 1 }}>DEMO</span>
             )}
+            {fund.id === "G" && (
+              <span title="The G Fund accrues interest daily and never trades, so technical signals are neutral by design" style={{ fontSize: 9, color: "#94a3b8", background: "#94a3b815", border: "1px solid #94a3b830", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", letterSpacing: 1 }}>NO SIGNALS</span>
+            )}
           </div>
-          <div style={{ color: "#334155", fontSize: 11, fontStyle: "italic", marginTop: 2 }}>{fund.desc} · via {fund.proxy}</div>
+          <div style={{ color: "#334155", fontSize: 11, fontStyle: "italic", marginTop: 2 }}>
+            {fund.desc} · {fund.source === "tsp" ? "official tsp.gov share price" : `via ${fund.proxy}`}
+          </div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontFamily: "monospace", fontSize: 18, color: "#e2e8f0" }}>${fund.current?.toFixed(2)}</div>
@@ -88,6 +93,7 @@ export default function FundCard({ fund }) {
               <ScoreBar label="RSI Momentum" value={fund.rsiScore} />
               <ScoreBar label="MACD Histogram" value={fund.macdScore} />
               <ScoreBar label="Supply / Demand" value={fund.sdScore} />
+              <ScoreBar label="Volatility Regime" value={fund.volScore ?? 0} />
             </div>
 
             {/* Key levels */}
@@ -96,11 +102,13 @@ export default function FundCard({ fund }) {
               {[
                 ["SMA 20", fund.sma20?.toFixed(2)],
                 ["SMA 50", fund.sma50?.toFixed(2)],
-                ["SMA 200", fund.sma200?.toFixed(2)],
-                ["RSI (14)", fund.rsi],
-                ["MACD", fund.macd],
+                [`SMA ${fund.smaLongN ?? 200}`, fund.smaLong?.toFixed(2)],
+                ["RSI (14)", fund.rsi ?? "—"],
+                ["MACD", fund.macd ?? "—"],
+                ["MACD Hist", fund.macdHist ?? "—"],
                 ["20D High", fund.high20?.toFixed(2)],
                 ["20D Low", fund.low20?.toFixed(2)],
+                ["Volatility (10D ann.)", fund.volatility != null ? `${fund.volatility}%` : "—"],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                   <span style={{ fontSize: 10, color: "#475569", fontFamily: "monospace" }}>{k}</span>

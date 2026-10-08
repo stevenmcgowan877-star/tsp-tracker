@@ -1,25 +1,17 @@
-import { FUNDS, fetchDailyPrices, computeSignals } from "../../lib/marketData";
+import { loadDashboardData } from "../../lib/dashboardData.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
   try {
-    const results = await Promise.all(
-      FUNDS.map(async (fund) => {
-        const priceData = await fetchDailyPrices(fund.proxy);
-        const signals = computeSignals(priceData);
-        return { ...fund, ...signals };
-      })
-    );
-
-    // Sort by composite score descending
-    results.sort((a, b) => b.composite - a.composite);
-
+    const { funds, trend, isDemo, isOfficial } = await loadDashboardData();
     res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate");
     res.status(200).json({
-      funds: results,
+      funds,
       updatedAt: new Date().toISOString(),
-      isDemo: results.some((f) => f.source === "demo"),
+      isDemo,
+      isOfficial,
+      trend,
     });
   } catch (err) {
     console.error("API error:", err);

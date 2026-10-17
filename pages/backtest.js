@@ -155,7 +155,7 @@ export default function Backtest() {
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         {ShareMeta({ title: "Rule Backtest · TSP Fund Signal Tracker", description: "The trend rule and the five-signal score replayed over 22 years of official tsp.gov prices against holding the C Fund.", path: "/backtest" })}
       </Head>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #070d1a; color: #e2e8f0; }
         @keyframes spin { to{transform:rotate(360deg)} }
@@ -165,7 +165,7 @@ export default function Backtest() {
         .bt-table th { color: #475569; font-weight: 400; letter-spacing: 1px; font-size: 9px; }
         .bt-table th:first-child, .bt-table td:first-child { text-align: left; }
         @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-      `}</style>
+      ` }} />
 
       <main style={{ minHeight: "100vh", background: "#070d1a", padding: "32px 16px", fontFamily: mono }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>

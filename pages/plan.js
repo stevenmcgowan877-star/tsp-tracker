@@ -178,13 +178,13 @@ export default function Plan() {
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         {ShareMeta({ title: "Planner · TSP Fund Signal Tracker", description: "A range of TSP outcomes through your working years and retirement under the trend rule, holding C and holding G.", path: "/plan" })}
       </Head>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #070d1a; color: #e2e8f0; }
         .pl input:focus-visible, .pl button:focus-visible { outline: 2px solid #00ff88; outline-offset: 2px; }
         .pl input[type=range] { accent-color: #00ff88; width: 100%; }
         @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-      `}</style>
+      ` }} />
 
       <main className="pl" style={{ minHeight: "100vh", background: "#070d1a", padding: "32px 16px", fontFamily: mono }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>

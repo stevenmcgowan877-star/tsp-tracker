@@ -129,7 +129,7 @@ export default function Home() {
         {ShareMeta({ title: "TSP Fund Signal Tracker", description: "One evidence-backed action rule for your TSP allocation, on official tsp.gov prices.", path: "/" })}
       </Head>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #070d1a; color: #e2e8f0; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
@@ -138,7 +138,7 @@ export default function Home() {
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
-      `}</style>
+      ` }} />
 
       <main style={{
         minHeight: "100vh",

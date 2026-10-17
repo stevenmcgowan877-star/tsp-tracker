@@ -101,7 +101,7 @@ export default function LFunds() {
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         {ShareMeta({ title: "L Fund Lens · TSP Fund Signal Tracker", description: "Every TSP Lifecycle fund compared with the C Fund, the G Fund and the trend rule.", path: "/lfunds" })}
       </Head>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #070d1a; color: #e2e8f0; }
         @keyframes spin { to{transform:rotate(360deg)} }
@@ -113,7 +113,7 @@ export default function LFunds() {
         .lf-table tr.sel td { background: rgba(217,119,6,0.08); }
         .lf-table tr.L { cursor: pointer; }
         @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-      `}</style>
+      ` }} />
 
       <main className="lf" style={{ minHeight: "100vh", background: "#070d1a", padding: "32px 16px", fontFamily: mono }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
